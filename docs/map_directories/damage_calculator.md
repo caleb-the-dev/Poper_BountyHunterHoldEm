@@ -1,16 +1,19 @@
 # Damage Calculator
-**Status:** 🔲 Not built | **Last updated:** 2026-04-17
+**Status:** ✅ Built | **Last updated:** 2026-04-18
 
 ## Purpose
-Computes final damage for a player's hand at showdown. Pure logic module — no state, no side effects, takes a hand + board state and returns an integer. Fully engine-agnostic and unit-testable in isolation.
+Computes final damage for a player's hand at showdown. Pure logic module — no state, no side effects. Takes a `Hand` + `BoardState` and returns an `int`. Fully engine-agnostic and unit-testable in isolation.
 
 ## Source Files
-_None yet. Engine not chosen._
+| File | Role |
+|---|---|
+| `server/damage_calculator.py` | Module — `Hand`, `BoardState` dataclasses + `calculate_damage()` |
+| `server/tests/test_damage_calculator.py` | 24 unit tests; run with `cd server && pytest -v` |
 
 ## Dependencies
 | Depends On | Why |
 |---|---|
-| Card Data | Reads card type definitions for formula inputs |
+| Card Data (`card_data.py`) | Imports `WeaponCard`, `ItemCard`, `InfusionCard`, `BountyCard`, `TerrainCard`, `BountyModCard`, `ClassCard` |
 
 ## Damage Formula
 
@@ -19,38 +22,60 @@ Final Damage = ceil(Base Damage × Infusion Multiplier)
 ```
 
 ### Step 1 — Base Damage
-1. Start with Weapon Card damage value
-2. Add Class Card damage (formula: `2+LV` standard; `3+LV` for Mage and favored multiclass type; Starting LV = 1)
-3. Add flat Item Card bonus values
-4. For each Bounty Mod in play: if the mod's physical type matches any card in the player's hand, apply +1 or −1 per matching card
+1. Sum all weapon damage type values
+2. Add each item's `bonus_value`
+3. Add each class formula evaluated at `level` (e.g. `"2+LV"` at LV 1 → 3)
+4. For each active `BountyModCard`: count how many damage sources in hand have a matching `affected_type`; add `modifier × count`
 
 ### Step 2 — Infusion Multiplier
-- Start at ×1.0
-- For each Infusion card in hand: +0.5 if type matches a Bounty Vulnerability; −0.5 if type matches a Bounty Resistance
-- If same infusion type is both Vulnerable and Resistant (same Bounty): effects cancel, treat as ×1 contribution
-- Floor: ×0.5 (multiplier can never go below 0.5)
-- Open issue: Do duplicate Infusion cards of the same type each add +0.5, or is it capped at one per unique type? — see `map.md` Open Design Issues
+- Start at `×1.0`
+- Collect `vuln_types = {bounty.vulnerability} ∪ ({terrain.adds_vulnerability} if terrain else ∅)`
+- Collect `resist_types = {bounty.resistance}` unless `resistance_dropped`, in which case `∅`
+- For each `InfusionCard` in hand:
+  - If type in both: cancel (±0 contribution)
+  - If type in `vuln_types` only: `+0.5`
+  - If type in `resist_types` only: `−0.5`
+- Floor at `×0.5`
+
+**Infusion stacking:** duplicate infusion cards of the same type each apply independently (resolved design issue).
 
 ### Step 3 — Final
-Apply `ceil()` to the result of Base × Multiplier.
-
-## Vulnerabilities & Resistances Reference
-**Bounty base:** 1 vulnerability + 1 resistance (from Bounty card)
-**Terrain:** adds 1 more vulnerability (from Terrain card, revealed Round 4)
-**Resistance Drop:** 25% chance Bounty loses its resistance at Round 3 (rolled by Game State Machine)
-
-## Signals / Events
-_None (pure function module — no events)._
+`ceil(base × multiplier)` — applied once at the end.
 
 ## Public API
-_None yet. Expected: `calculate_damage(hand, board_state) -> int`_
+
+```python
+@dataclass
+class Hand:
+    weapon: WeaponCard
+    items: list[ItemCard]        # 0–2 cards
+    infusions: list[InfusionCard]  # 0–2 cards
+    class_card: ClassCard
+    level: int = 1
+
+@dataclass
+class BoardState:
+    bounty: BountyCard
+    terrain: Optional[TerrainCard] = None
+    active_bounty_mods: list[BountyModCard] = field(default_factory=list)
+    resistance_dropped: bool = False
+
+def calculate_damage(hand: Hand, board: BoardState) -> int: ...
+```
+
+## Signals / Events
+None — pure function module.
 
 ## Key Patterns & Gotchas
-- Must be tested headless with no UI dependency.
-- Infusion multiplier floor is ×0.5, not 0 — even a fully resisted hand deals half damage.
-- `ceil()` is applied once at the end, not per step.
+- Bounty mod matching is **case-insensitive** (`dtype.lower() == mod.affected_type.lower()`).
+- Infusion cancellation: if the same infusion type appears in both `vuln_types` and `resist_types` (possible when terrain adds a type that the bounty resists), the effects cancel to ±0 for that card. This can happen with Dragon (resist Fire) + Tundra terrain (adds Fire vulnerability).
+- Multiplier floor is `×0.5` — even a fully resisted hand deals half damage.
+- `ceil()` is applied **once** to the final product, not per step.
+- Terrain uses `adds_vulnerability` as a **set** (deduplication) — if terrain adds the same type as the bounty's existing vulnerability, the second entry is redundant.
+- Bounty mod applies per damage **source** slot: a dual-type weapon (e.g. Sword and Board) contributes two separate slots, one per type.
 
 ## Recent Changes
 | Date | Change |
 |---|---|
+| 2026-04-18 | Built `server/damage_calculator.py` and `server/tests/test_damage_calculator.py`. 24 tests passing. Covers base damage, infusion multiplier, terrain, resistance drop, bounty mods, infusion cancellation, stacking, ceil, and multiclass formulas. |
 | 2026-04-17 | Bucket stub created. No implementation yet. |

@@ -13,7 +13,7 @@
 | Deck Manager | [deck_manager.md](deck_manager.md) | 🔲 Not built | Builds and shuffles player + bounty decks each hand |
 | Game State Machine | [game_state_machine.md](game_state_machine.md) | 🔲 Not built | Rounds 1–5, betting, showdown |
 | Betting Engine | [betting_engine.md](betting_engine.md) | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |
-| Damage Calculator | [damage_calculator.md](damage_calculator.md) | 🔲 Not built | Base dmg → infusion multiplier → ceil |
+| Damage Calculator | [damage_calculator.md](damage_calculator.md) | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
 | Lobby / Networking | [lobby_networking.md](lobby_networking.md) | ✅ Built (POC) | Python WebSocket relay + Godot 4 client; room code, chat, disconnect |
 | Save System | [save_system.md](save_system.md) | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
 | UI | [ui.md](ui.md) | 🔲 Not built | Functional only for vertical slice |
@@ -114,3 +114,4 @@ These must be resolved before or during vertical slice development. Block on the
 | 2026-04-18 | Live tested POC — two Godot 4.6 instances on same machine via ngrok. Core loop confirmed: create room, join by code, player list, bidirectional chat all working. Fixed Godot 4 API bug (`is_valid_int`). Known issue: abrupt disconnect does not fire `player_left`. Added .gitignore. Next: startup script to launch relay + ngrok programmatically. |
 | 2026-04-18 | Built `start_dev.py` + `/start-server` skill. Cross-machine test confirmed on two separate laptops via ngrok tunnel — full lobby flow working. Lobby UI scaled up (20–24px fonts, 48px inputs). Design issues #1 (4th card: 50/50) and #2 (infusion stacking: duplicates stack) resolved. Build order locked: Card Data → Damage Calculator → Deck Manager. |
 | 2026-04-18 | Built `server/card_data.py` — Card Data foundation layer. Loads all 8 Classic CSVs (weapons, items, infusions, bounties, terrains, bounty_mods, singleclasses, multiclasses) as typed dataclasses with de-duplication and normalization. 22 tests passing. |
+| 2026-04-18 | Built `server/damage_calculator.py` — Damage Calculator. `calculate_damage(hand, board) -> int` implements the full formula: base damage (weapon + class + items ± bounty_mods) × infusion multiplier (floor 0.5), ceil. 24 tests passing. |
