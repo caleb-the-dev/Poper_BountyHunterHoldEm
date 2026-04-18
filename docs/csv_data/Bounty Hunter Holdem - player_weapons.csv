@@ -1,0 +1,21 @@
+weapon_name,damage_dealt,additional_damage,total_damage
+Greatsword,3 slashing,,3
+Lance,3 piercing,,3
+Maul,3 blunt,,3
+Hand to Hand Grappling,3 constricting,,3
+Scimitar +,4 slashing,,4
+Bow and Arrow +,4 piercing,,4
+Net +,4 constricting,,4
+Mace +,4 blunt,,4
+Sword and Board +,2 slashing,2 blunt,4
+Bola +,2 blunt,2 constricting,4
+Spear +,2 piercing,2 blunt,4
+Shortsword +,2 slashing,2 piercing,4
+Spiked Whip +,2 slashing,2 constricting,4
+Grappling Hook +,2 piercing,2 constricting,4
+Wand,5 magic,,5
+Greatsword +,5 slashing,,5
+Lance +,5 piercing,,5
+Maul +,5 blunt,,5
+Hand to Hand Grappling +,5 constricting,,5
+Staff,6 magic,,6

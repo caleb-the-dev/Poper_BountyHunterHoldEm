@@ -1,0 +1,13 @@
+prefix,suffix,explanation
+Weak to,Piercing,damage dealt by all cards matching this weapon damage type by 1
+Weak to,Blunt,damage dealt by all cards matching this weapon damage type by 1
+Weak to,Slashing,damage dealt by all cards matching this weapon damage type by 1
+Weak to,Constricting,damage dealt by all cards matching this weapon damage type by 1
+Weak to,Piercing,damage dealt by all cards matching this weapon damage type by 1
+Weak to,Blunt,damage dealt by all cards matching this weapon damage type by 1
+Weak to,Slashing,damage dealt by all cards matching this weapon damage type by 1
+Weak to,Constricting,damage dealt by all cards matching this weapon damage type by 1
+Deflects,Piercing,damage dealt by all cards matching this weapon damage type by 1
+Deflects,Blunt,damage dealt by all cards matching this weapon damage type by 1
+Deflects,Slashing,damage dealt by all cards matching this weapon damage type by 1
+Deflects,Constricting,damage dealt by all cards matching this weapon damage type by 1

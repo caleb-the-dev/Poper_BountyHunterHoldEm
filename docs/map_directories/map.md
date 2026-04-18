@@ -9,7 +9,7 @@
 
 | System | Bucket File | Status | Notes |
 |---|---|---|---|
-| Card Data | [card_data.md](card_data.md) | 🔲 Not built | CSVs exist in `/data/`; de-dupe by unique card identity |
+| Card Data | [card_data.md](card_data.md) | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
 | Deck Manager | [deck_manager.md](deck_manager.md) | 🔲 Not built | Builds and shuffles player + bounty decks each hand |
 | Game State Machine | [game_state_machine.md](game_state_machine.md) | 🔲 Not built | Rounds 1–5, betting, showdown |
 | Betting Engine | [betting_engine.md](betting_engine.md) | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |
@@ -74,7 +74,8 @@ Poper_BountyHunterHoldEm/
 │   └── tests/
 │       ├── conftest.py
 │       ├── test_room_manager.py
-│       └── test_relay.py
+│       ├── test_relay.py
+│       └── test_card_data.py
 └── client/                          — Godot 4 lobby client
     ├── project.godot
     ├── autoload/
@@ -112,3 +113,4 @@ These must be resolved before or during vertical slice development. Block on the
 | 2026-04-18 | Built multiplayer POC: Python asyncio WebSocket relay server + Godot 4 client. Players join shared lobby by 4-digit room code and exchange chat. Zero port forwarding. Automated tests: 18 passing (11 unit + 7 integration). |
 | 2026-04-18 | Live tested POC — two Godot 4.6 instances on same machine via ngrok. Core loop confirmed: create room, join by code, player list, bidirectional chat all working. Fixed Godot 4 API bug (`is_valid_int`). Known issue: abrupt disconnect does not fire `player_left`. Added .gitignore. Next: startup script to launch relay + ngrok programmatically. |
 | 2026-04-18 | Built `start_dev.py` + `/start-server` skill. Cross-machine test confirmed on two separate laptops via ngrok tunnel — full lobby flow working. Lobby UI scaled up (20–24px fonts, 48px inputs). Design issues #1 (4th card: 50/50) and #2 (infusion stacking: duplicates stack) resolved. Build order locked: Card Data → Damage Calculator → Deck Manager. |
+| 2026-04-18 | Built `server/card_data.py` — Card Data foundation layer. Loads all 8 Classic CSVs (weapons, items, infusions, bounties, terrains, bounty_mods, singleclasses, multiclasses) as typed dataclasses with de-duplication and normalization. 22 tests passing. |

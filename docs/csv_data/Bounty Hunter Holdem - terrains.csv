@@ -1,0 +1,8 @@
+terrain_name,prefix,suffix,explanation
+Cave,Vulnerable to ,Sonic,"the bounty becomes vulnerable to this infusion, multiplying the damage dealt"
+Tundra,Vulnerable to ,Fire,"the bounty becomes vulnerable to this infusion, multiplying the damage dealt"
+Forest,Vulnerable to ,Acid,"the bounty becomes vulnerable to this infusion, multiplying the damage dealt"
+Mountain,Vulnerable to ,Ice,"the bounty becomes vulnerable to this infusion, multiplying the damage dealt"
+Sacred Ground,Vulnerable to ,Evil,"the bounty becomes vulnerable to this infusion, multiplying the damage dealt"
+Cemetery,Vulnerable to ,Holy,"the bounty becomes vulnerable to this infusion, multiplying the damage dealt"
+Grasslands,Vulnerable to ,Electric,"the bounty becomes vulnerable to this infusion, multiplying the damage dealt"

@@ -1,0 +1,9 @@
+service,cost,type,description
+Combat Training (single),5cp*(number of times upgraded+1),class,Level up your class
+Combat Training (multi),10cp*(number of times upgraded+1),class,Level up your class
+Divergent Training,5cp*(number of times upgraded+2),class,"Multiclass, adding an additional damage type to class"
+Potion,10cp,consumable,Increases base damage
+Infused Object,25cp,consumable,Gives the player the listed infusion
+Feint,5cp,consumable,Deceive your opponents
+Nullification Rune,15cp,consumable,Gives the bounty a resistance for the listed infusion
+Trap,5cp,consumable,Reduces the damage dealt per card of the listed damage type by 1

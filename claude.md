@@ -17,13 +17,14 @@
 
 ## Current Build State
 
-- **Stage:** Pre-development — design complete, vertical slice not started; multiplayer POC complete
-- **Working:** Multiplayer POC — relay server + Godot 4.6 lobby client. Live-tested: create room, join by code, bidirectional chat all confirmed working. (See TESTING.md)
+- **Stage:** Pre-development — design complete, vertical slice not started; multiplayer POC confirmed on two machines
+- **Working:** Multiplayer POC — relay server + Godot 4.6 lobby client. Cross-machine tested (two laptops via ngrok): create room, join by code, player list sync, bidirectional chat all confirmed. Lobby UI scaled up (20–24px fonts, 48px inputs). (See TESTING.md)
 - **Known issue:** Abrupt client disconnect (window close) does not deliver `player_left` to remaining clients. Clean leave-room works. Deferred to vertical slice — needs heartbeat/ping-pong.
 - **Vertical slice target:** Classic mode, fully playable online with 2–8 players
 - **`start_dev.py` built** — launches relay + ngrok, patches config.gd with live wss:// URL, restores on exit. Invoke with `/start-server` skill.
-- **Next task:** Cross-machine test via Tailscale (second laptop ready). Run `start_dev.py`, connect second machine to the wss:// URL, verify lobby + chat.
-- **Build order after networking confirmed:** Card Data loader → Damage Calculator → Deck Manager (all server-side Python, all unit-tested before any Godot work)
+- **Card Data built** — `server/card_data.py` loads all 8 Classic CSVs as typed dataclasses. 22 tests passing. See `docs/map_directories/card_data.md`.
+- **Next task:** Damage Calculator (`server/damage_calculator.py`). Formula: `ceil((weapon + class + items ± bounty_mods) × infusion_multiplier)`. Consumes `CardSet` from `card_data.py`.
+- **Build order after networking confirmed:** Card Data loader ✅ → Damage Calculator → Deck Manager (all server-side Python, all unit-tested before any Godot work)
 - **Cross-machine testing:** Second laptop available with Tailscale already set up — can use Tailscale IP instead of ngrok for LAN-free two-machine tests
 
 ---
@@ -56,7 +57,7 @@ The skill is the authoritative end-of-session workflow. Do not do wrap-up work a
 
 | System | Status | Notes |
 |---|---|---|
-| Card Data | 🔲 Not built | CSVs exist in `/data/`; de-dupe by unique card identity |
+| Card Data | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
 | Deck Manager | 🔲 Not built | Builds and shuffles player + bounty decks each hand |
 | Game State Machine | 🔲 Not built | Rounds 1–5, betting, showdown |
 | Betting Engine | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |

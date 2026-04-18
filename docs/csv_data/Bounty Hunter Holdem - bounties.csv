@@ -1,0 +1,8 @@
+bounty_name,vulnerable_to,resistant_to
+Beast,Sonic,Ice
+Serpent,Fire,Acid
+Giant Flytrap,Acid,Electric
+Dragon,Ice,Fire
+Angel,Evil,Holy
+Demon,Holy,Evil
+Construct,Electric,Sonic
