@@ -102,7 +102,7 @@ func _on_create_pressed() -> void:
 
 func _on_join_pressed() -> void:
 	var code := _code_input.text.strip_edges()
-	if code.length() != 4 or not code.is_numeric():
+	if code.length() != 4 or not code.is_valid_int():
 		_set_status("Please enter a valid 4-digit room code.")
 		return
 	_pending_action = "join"

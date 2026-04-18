@@ -1,0 +1,11 @@
+# Godot
+client/.godot/
+client/**/*.uid
+
+# Python
+server/__pycache__/
+server/tests/__pycache__/
+*.pyc
+
+# Claude
+.claude/
