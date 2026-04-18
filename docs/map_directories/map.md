@@ -1,5 +1,5 @@
 # Poper: Bounty Hunter Hold'em — System Map
-**Last updated:** 2026-04-17 | **Stage:** Pre-development (vertical slice not started)
+**Last updated:** 2026-04-18 | **Stage:** Pre-development (vertical slice not started; multiplayer POC complete)
 
 > This file is the index of all game systems. Read it at the start of any session involving an unfamiliar system, then open only the bucket file(s) you need. Do not load bucket files speculatively.
 
@@ -14,7 +14,7 @@
 | Game State Machine | [game_state_machine.md](game_state_machine.md) | 🔲 Not built | Rounds 1–5, betting, showdown |
 | Betting Engine | [betting_engine.md](betting_engine.md) | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |
 | Damage Calculator | [damage_calculator.md](damage_calculator.md) | 🔲 Not built | Base dmg → infusion multiplier → ceil |
-| Lobby / Networking | [lobby_networking.md](lobby_networking.md) | 🔲 Not built | Room code, 2–8 players, authoritative host |
+| Lobby / Networking | [lobby_networking.md](lobby_networking.md) | ✅ Built (POC) | Python WebSocket relay + Godot 4 client; room code, chat, disconnect |
 | Save System | [save_system.md](save_system.md) | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
 | UI | [ui.md](ui.md) | 🔲 Not built | Functional only for vertical slice |
 
@@ -60,11 +60,31 @@ Poper_BountyHunterHoldEm/
 │       ├── lobby_networking.md
 │       ├── save_system.md
 │       └── ui.md
-└── data/                            — CSV card data (exists; see Card Data bucket)
-    └── (weapon, item, infusion, bounty, terrain, bounty_mod, training, feints CSVs)
+├── data/                            — CSV card data (exists; see Card Data bucket)
+│   └── (weapon, item, infusion, bounty, terrain, bounty_mod, training, feints CSVs)
+├── server/                          — Python asyncio WebSocket relay server
+│   ├── relay_server.py
+│   ├── room_manager.py
+│   ├── config.py
+│   ├── requirements.txt
+│   ├── pytest.ini
+│   └── tests/
+│       ├── conftest.py
+│       ├── test_room_manager.py
+│       └── test_relay.py
+└── client/                          — Godot 4 lobby client
+    ├── project.godot
+    ├── autoload/
+    │   ├── config.gd
+    │   └── ws_client.gd
+    └── scenes/
+        ├── main.tscn
+        ├── main.gd
+        └── screens/
+            ├── name_entry.gd
+            ├── main_menu.gd
+            └── lobby.gd
 ```
-
-> **Note:** Engine not chosen yet. Source directories (`src/`, `scenes/`, etc.) will be added here once the engine is selected and scaffolded.
 
 ---
 
@@ -86,3 +106,4 @@ These must be resolved before or during vertical slice development. Block on the
 | Date | Summary |
 |---|---|
 | 2026-04-17 | Project initialized. Game Bible reviewed. map.md and all system bucket stubs created. Engine not yet chosen. |
+| 2026-04-18 | Built multiplayer POC: Python asyncio WebSocket relay server + Godot 4 client. Players join shared lobby by 4-digit room code and exchange chat. Zero port forwarding. Automated tests: 18 passing (11 unit + 7 integration). |
