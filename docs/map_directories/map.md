@@ -12,7 +12,7 @@
 | Card Data | [card_data.md](card_data.md) | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
 | Deck Manager | [deck_manager.md](deck_manager.md) | ✅ Built | `server/deck_manager.py`; 16 tests passing; deals player hands + board draws |
 | Game State Machine | [game_state_machine.md](game_state_machine.md) | ✅ Built | `server/game_state_machine.py`; 43 tests passing; phases, reveals, resistance drop, showdown |
-| Betting Engine | [betting_engine.md](betting_engine.md) | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |
+| Betting Engine | [betting_engine.md](betting_engine.md) | ✅ Built | `server/betting_engine.py`; 44 tests passing; call/raise/check/fold/all-in + side pots |
 | Damage Calculator | [damage_calculator.md](damage_calculator.md) | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
 | Lobby / Networking | [lobby_networking.md](lobby_networking.md) | ✅ Built (POC) | Python WebSocket relay + Godot 4 client; room code, chat, disconnect |
 | Save System | [save_system.md](save_system.md) | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
@@ -72,6 +72,7 @@ Poper_BountyHunterHoldEm/
 │   ├── card_data.py
 │   ├── damage_calculator.py
 │   ├── deck_manager.py
+│   ├── betting_engine.py
 │   ├── game_state_machine.py
 │   ├── requirements.txt
 │   ├── pytest.ini
@@ -82,6 +83,7 @@ Poper_BountyHunterHoldEm/
 │       ├── test_card_data.py
 │       ├── test_damage_calculator.py
 │       ├── test_deck_manager.py
+│       ├── test_betting_engine.py
 │       └── test_game_state_machine.py
 └── client/                          — Godot 4 lobby client
     ├── project.godot
@@ -123,4 +125,5 @@ These must be resolved before or during vertical slice development. Block on the
 | 2026-04-18 | Built `server/card_data.py` — Card Data foundation layer. Loads all 8 Classic CSVs (weapons, items, infusions, bounties, terrains, bounty_mods, singleclasses, multiclasses) as typed dataclasses with de-duplication and normalization. 22 tests passing. |
 | 2026-04-18 | Built `server/damage_calculator.py` — Damage Calculator. `calculate_damage(hand, board) -> int` implements the full formula: base damage (weapon + class + items ± bounty_mods) × infusion multiplier (floor 0.5), ceil. 24 tests passing. |
 | 2026-04-18 | Built `server/deck_manager.py` — Deck Manager. `deal_hands(n) -> list[PlayerHand]` and `draw_board() -> BoardDraw`. Player deck rebuilt each hand; board sub-piles (bounty/terrain/mod) persist and reshuffle independently when depleted. 16 tests passing. Total: 62 server tests. |
+| 2026-04-18 | Built `server/betting_engine.py` — Betting Engine. `BettingEngine` manages one betting round: check/call/raise/fold/all-in, re-open after raise, side pot calculation, partial-call all-in. 44 tests passing. Total: 167 server tests. |
 | 2026-04-18 | Built `server/game_state_machine.py` — Game State Machine. Drives the full hand lifecycle (LOBBY → CLASS_SELECTION → ROUND_1–5 → SHOWDOWN → HAND_END). Board reveals per round, 25% resistance drop at Round 3, showdown via DamageCalculator. 43 tests passing. Total: 105 server tests. |
