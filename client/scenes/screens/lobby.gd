@@ -10,14 +10,23 @@ var _player_list: VBoxContainer
 var _chat_log: VBoxContainer
 var _chat_scroll: ScrollContainer
 var _chat_input: LineEdit
+var _disconnected_cb: Callable
 
 
 func _ready() -> void:
+	_disconnected_cb = func(): _add_chat("[Server]", "Connection lost.")
 	WsClient.message_received.connect(_on_message)
-	WsClient.disconnected.connect(func(): _add_chat("[Server]", "Connection lost."))
+	WsClient.disconnected.connect(_disconnected_cb)
 	_build_ui()
 	for p in initial_players:
 		_add_player_label(p)
+
+
+func _exit_tree() -> void:
+	if WsClient.message_received.is_connected(_on_message):
+		WsClient.message_received.disconnect(_on_message)
+	if WsClient.disconnected.is_connected(_disconnected_cb):
+		WsClient.disconnected.disconnect(_disconnected_cb)
 
 
 func _build_ui() -> void:
@@ -85,15 +94,15 @@ func _build_ui() -> void:
 	input_row.add_child(send_btn)
 
 
-func _add_player_label(name: String) -> void:
+func _add_player_label(p_name: String) -> void:
 	var lbl := Label.new()
-	lbl.text = "• " + name
-	lbl.name = "p_" + name
+	lbl.text = "• " + p_name
+	lbl.name = "p_" + p_name
 	_player_list.add_child(lbl)
 
 
-func _remove_player_label(name: String) -> void:
-	var node := _player_list.find_child("p_" + name, false, false)
+func _remove_player_label(p_name: String) -> void:
+	var node := _player_list.find_child("p_" + p_name, false, false)
 	if node:
 		node.queue_free()
 

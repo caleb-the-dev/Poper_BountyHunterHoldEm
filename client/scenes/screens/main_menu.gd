@@ -10,12 +10,21 @@ var _code_input: LineEdit
 var _status_label: Label
 var _pending_action: String = ""
 var _pending_code: String = ""
+var _disconnected_cb: Callable
 
 
 func _ready() -> void:
+	_disconnected_cb = func(): _set_status("Disconnected from server.")
 	WsClient.message_received.connect(_on_message)
-	WsClient.disconnected.connect(func(): _set_status("Disconnected from server."))
+	WsClient.disconnected.connect(_disconnected_cb)
 	_build_ui()
+
+
+func _exit_tree() -> void:
+	if WsClient.message_received.is_connected(_on_message):
+		WsClient.message_received.disconnect(_on_message)
+	if WsClient.disconnected.is_connected(_disconnected_cb):
+		WsClient.disconnected.disconnect(_disconnected_cb)
 
 
 func _build_ui() -> void:

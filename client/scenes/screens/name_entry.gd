@@ -53,6 +53,6 @@ func _on_text_changed(text: String) -> void:
 
 
 func _submit() -> void:
-	var name := _name_input.text.strip_edges()
-	if not name.is_empty():
-		name_confirmed.emit(name)
+	var player_name := _name_input.text.strip_edges()
+	if not player_name.is_empty():
+		name_confirmed.emit(player_name)
