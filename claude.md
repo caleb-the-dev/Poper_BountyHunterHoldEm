@@ -21,7 +21,9 @@
 - **Working:** Multiplayer POC — relay server + Godot 4.6 lobby client. Live-tested: create room, join by code, bidirectional chat all confirmed working. (See TESTING.md)
 - **Known issue:** Abrupt client disconnect (window close) does not deliver `player_left` to remaining clients. Clean leave-room works. Deferred to vertical slice — needs heartbeat/ping-pong.
 - **Vertical slice target:** Classic mode, fully playable online with 2–8 players
-- **Next task:** Build a startup script (or Claude Code skill) to launch relay server + ngrok programmatically, so testing doesn't require manual terminal setup each session
+- **`start_dev.py` built** — launches relay + ngrok, patches config.gd with live wss:// URL, restores on exit. Invoke with `/start-server` skill.
+- **Next task:** Cross-machine test via Tailscale (second laptop ready). Run `start_dev.py`, connect second machine to the wss:// URL, verify lobby + chat.
+- **Build order after networking confirmed:** Card Data loader → Damage Calculator → Deck Manager (all server-side Python, all unit-tested before any Godot work)
 - **Cross-machine testing:** Second laptop available with Tailscale already set up — can use Tailscale IP instead of ngrok for LAN-free two-machine tests
 
 ---
@@ -101,7 +103,7 @@ Do NOT test: rendering, input handling, network transport layer.
 
 Resolve these before or during vertical slice development:
 
-1. **4th card probability** — 50/50 Item vs Infusion, or weighted?
-2. **Infusion stacking** — Do duplicate Infusion cards of the same type each add +0.5 to the multiplier?
+1. ~~**4th card probability**~~ — **Resolved: 50/50** (subject to playtesting). Implement as a named constant.
+2. ~~**Infusion stacking**~~ — **Resolved: duplicates stack** (each copy adds +0.5). Subject to playtesting; implement as a flag constant.
 3. **Betting order** — Define dealer button, clockwise turn order, and under-bet all-in handling.
 4. **Side pot + fold** — Can a player who folded still win a side pot they were all-in for?
