@@ -7,8 +7,8 @@
 ## Project Identity
 
 - **Game:** Poper: Bounty Hunter Hold'em — poker-adjacent online multiplayer card game
-- **Engine:** TBD (GMS2 or Godot recommended)
-- **Repo:** TBD
+- **Engine:** Godot 4
+- **Repo:** https://github.com/caleb-the-dev/Poper_BountyHunterHoldEm.git
 - **Solo dev** — background in GML and SQL; comfortable in Python; light JS/GDScript
 - **Design authority:** `docs/game_bible.md`
 - **Backlog:** `docs/backlog.md` — do not read automatically; user manages this
@@ -17,10 +17,11 @@
 
 ## Current Build State
 
-- **Stage:** Pre-development — design complete, vertical slice not started
-- **Working:** Nothing yet
+- **Stage:** Pre-development — design complete, vertical slice not started; multiplayer POC complete
+- **Working:** Multiplayer POC — relay server + Godot 4 lobby client (see TESTING.md)
 - **Vertical slice target:** Classic mode, fully playable online with 2–8 players
 - **Next task:** TBD by user
+- **Cross-machine testing:** Second laptop available with Tailscale already set up — can use Tailscale IP instead of ngrok for LAN-free two-machine tests
 
 ---
 
@@ -57,7 +58,7 @@ The skill is the authoritative end-of-session workflow. Do not do wrap-up work a
 | Game State Machine | 🔲 Not built | Rounds 1–5, betting, showdown |
 | Betting Engine | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |
 | Damage Calculator | 🔲 Not built | Base dmg → infusion multiplier → ceil |
-| Lobby / Networking | 🔲 Not built | Room code, 2–8 players, authoritative host |
+| Lobby / Networking | ✅ POC Built | Python WebSocket relay + Godot 4 client; room code, chat, disconnect |
 | Save System | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
 | UI | 🔲 Not built | Functional only for vertical slice |
 
