@@ -1,5 +1,5 @@
 # Poper: Bounty Hunter Hold'em — System Map
-**Last updated:** 2026-04-18 | **Stage:** Pre-development (vertical slice not started; multiplayer POC complete)
+**Last updated:** 2026-04-18 | **Stage:** Pre-development (vertical slice not started; multiplayer POC confirmed on two machines)
 
 > This file is the index of all game systems. Read it at the start of any session involving an unfamiliar system, then open only the bucket file(s) you need. Do not load bucket files speculatively.
 
@@ -49,6 +49,7 @@ Poper_BountyHunterHoldEm/
 ├── .gitignore                       — excludes client/.godot/, *.uid, __pycache__, .claude/
 ├── CLAUDE.md                        — build authority for Claude sessions
 ├── TESTING.md                       — step-by-step instructions for relay server + ngrok + Godot E2E test
+├── start_dev.py                     — dev startup: relay + ngrok + config.gd patch; invoke via /start-server skill
 ├── docs/
 │   ├── game_bible.md                — design authority (DO NOT modify without user approval)
 │   ├── backlog.md                   — user-managed; do not read automatically
@@ -110,3 +111,4 @@ These must be resolved before or during vertical slice development. Block on the
 | 2026-04-17 | Project initialized. Game Bible reviewed. map.md and all system bucket stubs created. Engine not yet chosen. |
 | 2026-04-18 | Built multiplayer POC: Python asyncio WebSocket relay server + Godot 4 client. Players join shared lobby by 4-digit room code and exchange chat. Zero port forwarding. Automated tests: 18 passing (11 unit + 7 integration). |
 | 2026-04-18 | Live tested POC — two Godot 4.6 instances on same machine via ngrok. Core loop confirmed: create room, join by code, player list, bidirectional chat all working. Fixed Godot 4 API bug (`is_valid_int`). Known issue: abrupt disconnect does not fire `player_left`. Added .gitignore. Next: startup script to launch relay + ngrok programmatically. |
+| 2026-04-18 | Built `start_dev.py` + `/start-server` skill. Cross-machine test confirmed on two separate laptops via ngrok tunnel — full lobby flow working. Lobby UI scaled up (20–24px fonts, 48px inputs). Design issues #1 (4th card: 50/50) and #2 (infusion stacking: duplicates stack) resolved. Build order locked: Card Data → Damage Calculator → Deck Manager. |

@@ -5,6 +5,7 @@
 Handles room creation, room joining via code, player connection management, and the authoritative relay model for all server-side game logic. The relay server brokers all messages between clients; game logic (shuffle, damage, pot resolution) will run server-side in the full build.
 
 ## Source Files
+- `start_dev.py` — dev startup script: launches relay + ngrok, patches `config.gd` with live `wss://` URL, restores on exit. Invoke via `/start-server` skill.
 - `server/relay_server.py` — Python asyncio WebSocket relay server
 - `server/room_manager.py` — room state and player tracking
 - `server/config.py` — server configuration constants
@@ -19,7 +20,7 @@ Handles room creation, room joining via code, player connection management, and 
 - `client/scenes/main.tscn` / `main.gd` — root scene; screen switcher
 - `client/scenes/screens/name_entry.gd` — player name entry screen
 - `client/scenes/screens/main_menu.gd` — create/join room UI
-- `client/scenes/screens/lobby.gd` — in-room UI, chat, player list
+- `client/scenes/screens/lobby.gd` — in-room UI, chat, player list (font sizes 20–24px, 48px input height)
 
 ## Dependencies
 | Depends On | Why |
@@ -80,7 +81,8 @@ Full protocol table is in `docs/superpowers/plans/2026-04-18-multiplayer-poc.md`
 
 - **Signal cleanup required:** `WsClient` is a singleton that outlives screens. `main_menu.gd` and `lobby.gd` both connect signals in `_ready` and must disconnect in `_exit_tree` using stored `Callable` vars for lambdas — otherwise duplicate handlers accumulate on screen re-entry.
 - **Polling pattern:** `WsClient._process` polls `WebSocketPeer` every frame. No event-driven callbacks — the poll loop is required.
-- **ngrok WSS:** For cross-machine testing, run `ngrok http 8765` and update `client/autoload/config.gd` `SERVER_URL` to use `wss://` (not `https://`). The ngrok URL is ephemeral — do not commit it. Reset `SERVER_URL` to `ws://localhost:8765` before committing.
+- **`start_dev.py` handles ngrok automatically:** Run `/start-server` (or `python start_dev.py` directly) — it launches the relay, starts ngrok, polls the ngrok local API, patches `config.gd` with the live `wss://` URL, and restores it on Ctrl+C. Do not manually edit `config.gd` for testing. The `cross-machine-test` branch has a committed ngrok URL — that branch exists only for onboarding second machines; never merge that URL to main.
+- **Cross-machine test confirmed (2026-04-18):** Two separate machines (different laptops) connected via ngrok tunnel. Lobby create/join, player list sync, and bidirectional chat all confirmed working across machines.
 - **`set_name` must be first:** Server ignores all actions until `set_name` is received.
 - **One socket at a time:** Calling `connect_to_server` while a close is in progress leaks the old socket. Always await disconnect before reconnecting (current UX flow prevents this in practice).
 - **`is_valid_int()` not `is_numeric()`:** Godot 4 String has no `is_numeric()` method. Use `is_valid_int()` to validate room code input.
@@ -97,4 +99,5 @@ Full protocol table is in `docs/superpowers/plans/2026-04-18-multiplayer-poc.md`
 |---|---|
 | 2026-04-18 | Built multiplayer POC: Python relay server + Godot 4 client. Room create/join by 4-digit code, chat, disconnect notification. Zero port forwarding via WebSocket outbound + ngrok tunnel. |
 | 2026-04-18 | Live-tested POC on two Godot instances on same machine. All core features confirmed working: lobby creation, join by code, live player list, bidirectional chat. Fixed `is_numeric()` → `is_valid_int()` (Godot 4 API). Project auto-upgraded to Godot 4.6. Added `.gitignore`. Known issue: abrupt disconnect does not deliver `player_left` to remaining clients — deferred. |
+| 2026-04-18 | Built `start_dev.py` — one-command dev startup (relay + ngrok + config.gd patch + restore on exit). `/start-server` skill added. Cross-machine test confirmed on two separate laptops via ngrok. Lobby UI scaled up: headers 24px, body/chat/input 20px, input/button min height 48px. |
 | 2026-04-17 | Bucket stub created. No implementation yet. Engine TBD. |
