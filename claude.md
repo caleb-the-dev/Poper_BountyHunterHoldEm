@@ -7,7 +7,7 @@
 ## Project Identity
 
 - **Game:** Poper: Bounty Hunter Hold'em — poker-adjacent online multiplayer card game
-- **Engine:** Godot 4
+- **Engine:** Godot 4.6
 - **Repo:** https://github.com/caleb-the-dev/Poper_BountyHunterHoldEm.git
 - **Solo dev** — background in GML and SQL; comfortable in Python; light JS/GDScript
 - **Design authority:** `docs/game_bible.md`
@@ -18,9 +18,10 @@
 ## Current Build State
 
 - **Stage:** Pre-development — design complete, vertical slice not started; multiplayer POC complete
-- **Working:** Multiplayer POC — relay server + Godot 4 lobby client (see TESTING.md)
+- **Working:** Multiplayer POC — relay server + Godot 4.6 lobby client. Live-tested: create room, join by code, bidirectional chat all confirmed working. (See TESTING.md)
+- **Known issue:** Abrupt client disconnect (window close) does not deliver `player_left` to remaining clients. Clean leave-room works. Deferred to vertical slice — needs heartbeat/ping-pong.
 - **Vertical slice target:** Classic mode, fully playable online with 2–8 players
-- **Next task:** TBD by user
+- **Next task:** Build a startup script (or Claude Code skill) to launch relay server + ngrok programmatically, so testing doesn't require manual terminal setup each session
 - **Cross-machine testing:** Second laptop available with Tailscale already set up — can use Tailscale IP instead of ngrok for LAN-free two-machine tests
 
 ---
@@ -79,8 +80,6 @@ The skill is the authoritative end-of-session workflow. Do not do wrap-up work a
 ---
 
 ## Code Conventions
-
-*Update this section once an engine is chosen.*
 
 - Comment the *why*, not the *what*
 - Signals/events use past-tense names: `hand_dealt`, `bet_placed`, `bounty_revealed`
