@@ -25,8 +25,9 @@
 - **Card Data built** — `server/card_data.py` loads all 8 Classic CSVs as typed dataclasses. 22 tests passing. See `docs/map_directories/card_data.md`.
 - **Damage Calculator built** — `server/damage_calculator.py`. `calculate_damage(hand, board) -> int`. 24 tests passing. See `docs/map_directories/damage_calculator.md`.
 - **Deck Manager built** — `server/deck_manager.py`. `deal_hands(n) -> list[PlayerHand]`, `draw_board() -> BoardDraw`. 16 tests passing. See `docs/map_directories/deck_manager.md`.
-- **Next task:** Game State Machine (`server/game_state_machine.py`). Drives the 5 betting rounds, calls DeckManager + DamageCalculator.
-- **Build order after networking confirmed:** Card Data loader ✅ → Damage Calculator ✅ → Deck Manager ✅ → Game State Machine (all server-side Python, all unit-tested before any Godot work)
+- **Game State Machine built** — `server/game_state_machine.py`. Full hand lifecycle: LOBBY → CLASS_SELECTION → ROUND_1–5 → SHOWDOWN → HAND_END. Board reveals per round, 25% resistance drop at Round 3, showdown via DamageCalculator. 43 tests passing. See `docs/map_directories/game_state_machine.md`.
+- **Next task:** Betting Engine (`server/betting_engine.py`). Call/raise/check/fold/all-in + side pot logic. Wires into GSM `advance_round()`.
+- **Build order after networking confirmed:** Card Data loader ✅ → Damage Calculator ✅ → Deck Manager ✅ → Game State Machine ✅ → Betting Engine (all server-side Python, all unit-tested before any Godot work)
 - **Cross-machine testing:** Second laptop available with Tailscale already set up — can use Tailscale IP instead of ngrok for LAN-free two-machine tests
 
 ---
@@ -61,7 +62,7 @@ The skill is the authoritative end-of-session workflow. Do not do wrap-up work a
 |---|---|---|
 | Card Data | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
 | Deck Manager | ✅ Built | `server/deck_manager.py`; 16 tests passing; deals player hands + board draws |
-| Game State Machine | 🔲 Not built | Rounds 1–5, betting, showdown |
+| Game State Machine | ✅ Built | `server/game_state_machine.py`; 43 tests passing |
 | Betting Engine | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |
 | Damage Calculator | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
 | Lobby / Networking | ✅ POC Built | Python WebSocket relay + Godot 4 client; room code, chat, disconnect |
