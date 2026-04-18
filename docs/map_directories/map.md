@@ -10,7 +10,7 @@
 | System | Bucket File | Status | Notes |
 |---|---|---|---|
 | Card Data | [card_data.md](card_data.md) | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
-| Deck Manager | [deck_manager.md](deck_manager.md) | 🔲 Not built | Builds and shuffles player + bounty decks each hand |
+| Deck Manager | [deck_manager.md](deck_manager.md) | ✅ Built | `server/deck_manager.py`; 16 tests passing; deals player hands + board draws |
 | Game State Machine | [game_state_machine.md](game_state_machine.md) | 🔲 Not built | Rounds 1–5, betting, showdown |
 | Betting Engine | [betting_engine.md](betting_engine.md) | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |
 | Damage Calculator | [damage_calculator.md](damage_calculator.md) | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
@@ -69,13 +69,18 @@ Poper_BountyHunterHoldEm/
 │   ├── relay_server.py
 │   ├── room_manager.py
 │   ├── config.py
+│   ├── card_data.py
+│   ├── damage_calculator.py
+│   ├── deck_manager.py
 │   ├── requirements.txt
 │   ├── pytest.ini
 │   └── tests/
 │       ├── conftest.py
 │       ├── test_room_manager.py
 │       ├── test_relay.py
-│       └── test_card_data.py
+│       ├── test_card_data.py
+│       ├── test_damage_calculator.py
+│       └── test_deck_manager.py
 └── client/                          — Godot 4 lobby client
     ├── project.godot
     ├── autoload/
@@ -115,3 +120,4 @@ These must be resolved before or during vertical slice development. Block on the
 | 2026-04-18 | Built `start_dev.py` + `/start-server` skill. Cross-machine test confirmed on two separate laptops via ngrok tunnel — full lobby flow working. Lobby UI scaled up (20–24px fonts, 48px inputs). Design issues #1 (4th card: 50/50) and #2 (infusion stacking: duplicates stack) resolved. Build order locked: Card Data → Damage Calculator → Deck Manager. |
 | 2026-04-18 | Built `server/card_data.py` — Card Data foundation layer. Loads all 8 Classic CSVs (weapons, items, infusions, bounties, terrains, bounty_mods, singleclasses, multiclasses) as typed dataclasses with de-duplication and normalization. 22 tests passing. |
 | 2026-04-18 | Built `server/damage_calculator.py` — Damage Calculator. `calculate_damage(hand, board) -> int` implements the full formula: base damage (weapon + class + items ± bounty_mods) × infusion multiplier (floor 0.5), ceil. 24 tests passing. |
+| 2026-04-18 | Built `server/deck_manager.py` — Deck Manager. `deal_hands(n) -> list[PlayerHand]` and `draw_board() -> BoardDraw`. Player deck rebuilt each hand; board sub-piles (bounty/terrain/mod) persist and reshuffle independently when depleted. 16 tests passing. Total: 62 server tests. |

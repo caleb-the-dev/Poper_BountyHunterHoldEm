@@ -23,8 +23,10 @@
 - **Vertical slice target:** Classic mode, fully playable online with 2–8 players
 - **`start_dev.py` built** — launches relay + ngrok, patches config.gd with live wss:// URL, restores on exit. Invoke with `/start-server` skill.
 - **Card Data built** — `server/card_data.py` loads all 8 Classic CSVs as typed dataclasses. 22 tests passing. See `docs/map_directories/card_data.md`.
-- **Next task:** Damage Calculator (`server/damage_calculator.py`). Formula: `ceil((weapon + class + items ± bounty_mods) × infusion_multiplier)`. Consumes `CardSet` from `card_data.py`.
-- **Build order after networking confirmed:** Card Data loader ✅ → Damage Calculator → Deck Manager (all server-side Python, all unit-tested before any Godot work)
+- **Damage Calculator built** — `server/damage_calculator.py`. `calculate_damage(hand, board) -> int`. 24 tests passing. See `docs/map_directories/damage_calculator.md`.
+- **Deck Manager built** — `server/deck_manager.py`. `deal_hands(n) -> list[PlayerHand]`, `draw_board() -> BoardDraw`. 16 tests passing. See `docs/map_directories/deck_manager.md`.
+- **Next task:** Game State Machine (`server/game_state_machine.py`). Drives the 5 betting rounds, calls DeckManager + DamageCalculator.
+- **Build order after networking confirmed:** Card Data loader ✅ → Damage Calculator ✅ → Deck Manager ✅ → Game State Machine (all server-side Python, all unit-tested before any Godot work)
 - **Cross-machine testing:** Second laptop available with Tailscale already set up — can use Tailscale IP instead of ngrok for LAN-free two-machine tests
 
 ---
@@ -58,10 +60,10 @@ The skill is the authoritative end-of-session workflow. Do not do wrap-up work a
 | System | Status | Notes |
 |---|---|---|
 | Card Data | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
-| Deck Manager | 🔲 Not built | Builds and shuffles player + bounty decks each hand |
+| Deck Manager | ✅ Built | `server/deck_manager.py`; 16 tests passing; deals player hands + board draws |
 | Game State Machine | 🔲 Not built | Rounds 1–5, betting, showdown |
 | Betting Engine | 🔲 Not built | Call, raise, check, fold, all-in + side pot logic |
-| Damage Calculator | 🔲 Not built | Base dmg → infusion multiplier → ceil |
+| Damage Calculator | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
 | Lobby / Networking | ✅ POC Built | Python WebSocket relay + Godot 4 client; room code, chat, disconnect |
 | Save System | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
 | UI | 🔲 Not built | Functional only for vertical slice |
