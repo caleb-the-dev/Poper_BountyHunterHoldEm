@@ -169,7 +169,15 @@ async def handler(ws) -> None:
 def run() -> None:
     async def _serve():
         print(f"Relay listening on ws://{HOST}:{PORT}")
-        async with serve(handler, HOST, PORT):
+        # Tighter ping/pong than the library default of 20/20 so abrupt
+        # client death (window close, TCP reset through ngrok) surfaces as
+        # a disconnect within ~20s instead of ~40s. Godot's WebSocketPeer
+        # responds to protocol-level pings automatically — no client work.
+        async with serve(
+            handler, HOST, PORT,
+            ping_interval=10,
+            ping_timeout=10,
+        ):
             await asyncio.Future()  # run forever
 
     asyncio.run(_serve())
