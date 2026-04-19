@@ -292,3 +292,28 @@ def test_showdown_total_chip_conservation(card_set):
     s.apply_bet_action("p2", "fold")
     _play_check_check_through_remainder(s)
     assert sum(s.chips.values()) == 3 * STARTING_CHIPS
+
+
+# --- Fast-forward ---
+
+def test_fast_forward_when_both_players_all_in(card_set):
+    from game_state_machine import GamePhase
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "all_in")   # p0 all-in for 100
+    s.apply_bet_action("p1", "call")      # p1 calls 100 (all-in)
+    # After the call, p0 and p1 are both all-in. Round completes.
+    # No more bettors — session should fast-forward to HAND_END.
+    assert s.gsm.phase == GamePhase.HAND_END
+    assert s.showdown is not None
+
+def test_fast_forward_one_broke_one_has_chips(card_set):
+    """p0 all-in for full stack, p1 calls (commits all), p2 has chips but only 1 active.
+    Next round should fast-forward since only p2 can act."""
+    from game_state_machine import GamePhase
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "all_in")    # p0: 100 all-in
+    s.apply_bet_action("p1", "call")      # p1 calls, all-in
+    s.apply_bet_action("p2", "call")      # p2 calls, still has chips
+    # p0 and p1 are both all-in; p2 still has chips but is alone.
+    # Fast-forward should activate
+    assert s.gsm.phase == GamePhase.HAND_END

@@ -107,12 +107,22 @@ class GameSession:
             self._resolve_showdown()
             return
 
-        self.gsm.advance_round()
-        if self.gsm.phase == GamePhase.SHOWDOWN:
-            self._resolve_showdown()
-            return
+        # Advance rounds, fast-forwarding if no one can act
+        while True:
+            self.gsm.advance_round()
+            if self.gsm.phase == GamePhase.SHOWDOWN:
+                self._resolve_showdown()
+                return
+            if self._has_active_bettors():
+                self.betting = self._new_betting_engine()
+                return
+            # else: loop and advance again
 
-        self.betting = self._new_betting_engine()
+    def _has_active_bettors(self) -> bool:
+        """True if at least 2 non-folded players have chips > 0."""
+        folded = {p.player_id for p in self.gsm.players if p.folded}
+        bettors = [pid for pid in self.player_ids if pid not in folded and self.chips[pid] > 0]
+        return len(bettors) >= 2
 
     def _resolve_showdown(self) -> None:
         """Handle SHOWDOWN phase: calculate damage (if more than one player left),
