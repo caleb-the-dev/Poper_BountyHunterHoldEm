@@ -1,10 +1,15 @@
 import asyncio
 import json
+import os
 from websockets.asyncio.server import serve
 from config import HOST, PORT
 from room_manager import RoomManager
+from card_data import load_all
 
 _manager = RoomManager()
+
+_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "docs", "csv_data")
+_card_set = load_all(_DATA_DIR)
 
 
 async def _send(ws, event: str, **kwargs) -> None:
@@ -15,6 +20,30 @@ async def _broadcast(clients: list, event: str, **kwargs) -> None:
     if clients:
         payload = json.dumps({"event": event, **kwargs})
         await asyncio.gather(*(c.send(payload) for c in clients))
+
+
+async def _broadcast_game_state(code: str) -> None:
+    """Broadcast full snapshot to every client in the room."""
+    session = _manager.get_game_session(code)
+    if session is None:
+        return
+    snap = session.snapshot()
+    payload = json.dumps({"event": "game_state", **snap})
+    clients = list(_manager._rooms.get(code, []))  # type: ignore[attr-defined]
+    if clients:
+        await asyncio.gather(*(c.send(payload) for c in clients))
+
+
+async def _send_private_hands(code: str) -> None:
+    session = _manager.get_game_session(code)
+    if session is None:
+        return
+    clients = list(_manager._rooms.get(code, []))  # type: ignore[attr-defined]
+    for client in clients:
+        pid = _manager.get_player_id(client)
+        priv = session.private_hand(pid)
+        if priv is not None:
+            await _send(client, "your_hand", **priv)
 
 
 async def handler(ws) -> None:
@@ -68,6 +97,20 @@ async def handler(ws) -> None:
                 _manager.leave_room(ws)
                 await _broadcast(roommates, "player_left", name=ws.name)
                 print(f"[room]    {ws.name} left")
+
+            elif action == "start_game":
+                if not ws.name:
+                    await _send(ws, "error", message="Send set_name first")
+                    continue
+                try:
+                    _manager.start_game(ws, _card_set)
+                except ValueError as e:
+                    await _send(ws, "error", message=str(e))
+                    continue
+                code = _manager.get_room_code(ws)
+                await _broadcast_game_state(code)
+                await _send_private_hands(code)
+                print(f"[game]    {ws.name} started game in {code}")
 
             else:
                 await _send(ws, "error", message=f"Unknown action: {action}")
