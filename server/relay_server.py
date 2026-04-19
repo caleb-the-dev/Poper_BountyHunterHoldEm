@@ -77,6 +77,10 @@ async def handler(ws) -> None:
                     await _send(ws, "error", message="Send set_name first")
                     continue
                 code = str(msg.get("code", ""))
+                # Pre-check for in-game rejection to give a better error message
+                if _manager.get_game_session(code) is not None:
+                    await _send(ws, "error", message="Room is in-game — cannot join")
+                    continue
                 if not _manager.join_room(code, ws):
                     await _send(ws, "error", message="Room not found or full")
                     continue
@@ -94,9 +98,15 @@ async def handler(ws) -> None:
                 print(f"[chat]    {ws.name}: {text}")
 
             elif action == "leave_room":
+                session = _manager.get_game_session_for_client(ws)
+                if session is not None:
+                    session.on_player_disconnect(_manager.get_player_id(ws))
                 roommates = _manager.get_roommates(ws)
+                code = _manager.get_room_code(ws)
                 _manager.leave_room(ws)
                 await _broadcast(roommates, "player_left", name=ws.name)
+                if code and _manager.get_game_session(code) is not None:
+                    await _broadcast_game_state(code)
                 print(f"[room]    {ws.name} left")
 
             elif action == "start_game":
@@ -144,9 +154,15 @@ async def handler(ws) -> None:
 
     finally:
         if ws.name:
+            session = _manager.get_game_session_for_client(ws)
+            if session is not None:
+                session.on_player_disconnect(_manager.get_player_id(ws))
             roommates = _manager.get_roommates(ws)
+            code = _manager.get_room_code(ws)
             _manager.leave_room(ws)
             await _broadcast(roommates, "player_left", name=ws.name)
+            if code and _manager.get_game_session(code) is not None:
+                await _broadcast_game_state(code)
             print(f"[disconnect] {ws.name}")
 
 

@@ -154,3 +154,38 @@ async def test_full_hand_check_check_through_to_showdown():
     finally:
         await a.close()
         await b.close()
+
+
+# --- Mid-game join / leave ---
+
+@pytest.mark.asyncio
+async def test_join_room_rejected_while_game_in_progress():
+    a, b, code = await _setup_started_game()
+    c = await ws_connect(URL)
+    try:
+        await _send(c, {"action": "set_name", "name": "Latecomer"})
+        await _recv(c)
+        await _send(c, {"action": "join_room", "code": code})
+        err = await _recv(c)
+        assert err["event"] == "error"
+        assert "in-game" in err["message"].lower() or "full" in err["message"].lower()
+    finally:
+        await a.close()
+        await b.close()
+        await c.close()
+
+
+@pytest.mark.asyncio
+async def test_leave_room_mid_game_auto_folds_and_broadcasts():
+    a, b, _ = await _setup_started_game()
+    try:
+        await _send(b, {"action": "leave_room"})
+        # a receives player_left + updated game_state
+        ev1 = await _recv(a)
+        ev2 = await _recv(a)
+        events = {ev1["event"], ev2["event"]}
+        assert "player_left" in events
+        assert "game_state" in events
+    finally:
+        await a.close()
+        await b.close()
