@@ -5,6 +5,7 @@ from websockets.asyncio.server import serve
 from config import HOST, PORT
 from room_manager import RoomManager
 from card_data import load_all
+from game_session import InvalidActionError
 
 _manager = RoomManager()
 
@@ -126,8 +127,10 @@ async def handler(ws) -> None:
                 if not isinstance(type_, str):
                     await _send(ws, "error", message="Invalid bet action type")
                     continue
+                if amount is not None and not isinstance(amount, int):
+                    await _send(ws, "error", message="Invalid bet amount")
+                    continue
                 try:
-                    from game_session import InvalidActionError
                     session.apply_bet_action(player_id, type_, amount)
                 except InvalidActionError as e:
                     await _send(ws, "error", message=str(e))
