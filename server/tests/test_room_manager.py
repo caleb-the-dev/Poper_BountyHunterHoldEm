@@ -120,6 +120,22 @@ def test_get_host_unknown_room_returns_none():
     mgr = RoomManager()
     assert mgr.get_host("9999") is None
 
+def test_get_clients_returns_clients_in_join_order():
+    mgr, code, clients = _make_manager_with_room(3)
+    assert mgr.get_clients(code) == clients
+
+def test_get_clients_unknown_room_returns_empty_list():
+    from room_manager import RoomManager
+    mgr = RoomManager()
+    assert mgr.get_clients("9999") == []
+
+def test_get_clients_returns_copy_not_live_list():
+    mgr, code, clients = _make_manager_with_room(2)
+    returned = mgr.get_clients(code)
+    returned.clear()
+    # Mutating the returned list must not affect internal state.
+    assert len(mgr.get_clients(code)) == 2
+
 def test_start_game_creates_game_session():
     mgr, code, clients = _make_manager_with_room(2)
     card_set = _load_all(_DATA_DIR_ROOM)

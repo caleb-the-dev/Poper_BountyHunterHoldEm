@@ -30,7 +30,7 @@ async def _broadcast_game_state(code: str) -> None:
         return
     snap = session.snapshot()
     payload = json.dumps({"event": "game_state", **snap})
-    clients = list(_manager._rooms.get(code, []))  # type: ignore[attr-defined]
+    clients = _manager.get_clients(code)
     if clients:
         await asyncio.gather(*(c.send(payload) for c in clients))
 
@@ -39,7 +39,7 @@ async def _send_private_hands(code: str) -> None:
     session = _manager.get_game_session(code)
     if session is None:
         return
-    clients = list(_manager._rooms.get(code, []))  # type: ignore[attr-defined]
+    clients = _manager.get_clients(code)
     for client in clients:
         pid = _manager.get_player_id(client)
         priv = session.private_hand(pid)

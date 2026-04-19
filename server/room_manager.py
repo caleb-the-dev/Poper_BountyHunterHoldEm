@@ -53,6 +53,10 @@ class RoomManager:
             return None
         return room[0]
 
+    def get_clients(self, code: str) -> list:
+        """Return a copy of the clients in a room, in join order. Empty list if unknown code."""
+        return list(self._rooms.get(code, []))
+
     def get_player_id(self, client) -> str:
         """Canonical game-session player_id for a client — stable for the lifetime of the object."""
         return str(id(client))
