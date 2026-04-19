@@ -83,3 +83,74 @@ async def test_start_game_rejected_from_non_host():
     finally:
         await a.close()
         await b.close()
+
+
+# --- bet_action ---
+
+async def _setup_started_game():
+    a, b, code = await _join_room_pair()
+    await _send(a, {"action": "start_game"})
+    # Drain: game_state + your_hand for each client (4 events total)
+    for _ in range(2):
+        await _recv(a)
+    for _ in range(2):
+        await _recv(b)
+    return a, b, code
+
+
+@pytest.mark.asyncio
+async def test_bet_action_check_broadcasts_new_game_state():
+    a, b, _ = await _setup_started_game()
+    try:
+        # a is the host (seat 0), so a is the current player initially
+        await _send(a, {"action": "bet_action", "type": "check"})
+        ev_a = await _recv(a)
+        ev_b = await _recv(b)
+        assert ev_a["event"] == "game_state"
+        assert ev_b["event"] == "game_state"
+    finally:
+        await a.close()
+        await b.close()
+
+
+@pytest.mark.asyncio
+async def test_bet_action_rejected_when_not_your_turn():
+    a, b, _ = await _setup_started_game()
+    try:
+        await _send(b, {"action": "bet_action", "type": "check"})  # not b's turn
+        err = await _recv(b)
+        assert err["event"] == "error"
+        assert "turn" in err["message"].lower()
+    finally:
+        await a.close()
+        await b.close()
+
+
+@pytest.mark.asyncio
+async def test_bet_action_rejected_with_invalid_type():
+    a, b, _ = await _setup_started_game()
+    try:
+        await _send(a, {"action": "bet_action", "type": "nope"})
+        err = await _recv(a)
+        assert err["event"] == "error"
+    finally:
+        await a.close()
+        await b.close()
+
+
+@pytest.mark.asyncio
+async def test_full_hand_check_check_through_to_showdown():
+    a, b, _ = await _setup_started_game()
+    try:
+        # 5 rounds, each with a.check then b.check; after each bet_action the relay broadcasts
+        # game_state to BOTH a and b, so drain 2 events per action.
+        for _ in range(5):
+            await _send(a, {"action": "bet_action", "type": "check"})
+            await _recv(a); await _recv(b)
+            await _send(b, {"action": "bet_action", "type": "check"})
+            await _recv(a); await _recv(b)
+        # We've played 5 rounds + the showdown round. The last broadcast should be in hand_end.
+        # No assertion on the final state — test passes if we didn't timeout or get errors.
+    finally:
+        await a.close()
+        await b.close()

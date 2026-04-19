@@ -112,6 +112,30 @@ async def handler(ws) -> None:
                 await _send_private_hands(code)
                 print(f"[game]    {ws.name} started game in {code}")
 
+            elif action == "bet_action":
+                if not ws.name:
+                    await _send(ws, "error", message="Send set_name first")
+                    continue
+                session = _manager.get_game_session_for_client(ws)
+                if session is None:
+                    await _send(ws, "error", message="No game in progress")
+                    continue
+                player_id = _manager.get_player_id(ws)
+                type_ = msg.get("type")
+                amount = msg.get("amount")
+                if not isinstance(type_, str):
+                    await _send(ws, "error", message="Invalid bet action type")
+                    continue
+                try:
+                    from game_session import InvalidActionError
+                    session.apply_bet_action(player_id, type_, amount)
+                except InvalidActionError as e:
+                    await _send(ws, "error", message=str(e))
+                    continue
+                code = _manager.get_room_code(ws)
+                await _broadcast_game_state(code)
+                print(f"[bet]     {ws.name} {type_} {amount or ''} in {code}")
+
             else:
                 await _send(ws, "error", message=f"Unknown action: {action}")
 
