@@ -1,5 +1,5 @@
 # Game State Machine
-**Status:** ✅ Built | **Last updated:** 2026-04-18
+**Status:** ✅ Built | **Last updated:** 2026-04-19
 
 ## Purpose
 Owns the authoritative game flow: round progression (1–5), revealing board cards, rolling the Round 3 resistance drop, and driving showdown via DamageCalculator. All other systems respond to state transitions emitted by this machine.
@@ -8,7 +8,7 @@ Owns the authoritative game flow: round progression (1–5), revealing board car
 | File | Role |
 |---|---|
 | `server/game_state_machine.py` | Module — `GamePhase`, `PlayerState`, `ShowdownResult` dataclasses + `GameStateMachine` class |
-| `server/tests/test_game_state_machine.py` | 43 unit tests; run with `cd server && pytest -v` |
+| `server/tests/test_game_state_machine.py` | 46 unit tests; run with `cd server && pytest -v` |
 
 ## Dependencies
 | Depends On | Why |
@@ -94,6 +94,7 @@ class GameStateMachine:
     def advance_round(self) -> None: ...       # ROUND_N → ROUND_N+1 or SHOWDOWN
     def fold(self, player_id: str) -> None: ...
     def resolve_showdown(self) -> ShowdownResult: ...  # SHOWDOWN → HAND_END
+    def force_hand_end_walkover(self) -> None: ...     # ROUND_1..SHOWDOWN → HAND_END without damage calc
 ```
 
 - `rng` is injectable for deterministic testing; defaults to `random.Random()`.
@@ -101,6 +102,7 @@ class GameStateMachine:
 - `advance_round()` is the caller's responsibility — the Betting Engine will call it after `betting_round_complete`.
 - `fold()` during a round phase auto-transitions to SHOWDOWN if all-but-one player folds.
 - `resolve_showdown()` uses the full board (bounty + terrain + all 3 mods + resistance flag) regardless of reveal state — the reveal properties control what clients see, not what damage calc uses.
+- `force_hand_end_walkover()` jumps to HAND_END without running damage calc. Used by `GameSession` when all-but-one players folded and the sole survivor already has the pot. Callable from any in-hand phase (ROUND_1..SHOWDOWN); raises from LOBBY/CLASS_SELECTION/HAND_END/GAME_END.
 
 ## Key Patterns & Gotchas
 - **Reveal vs. calculation**: `revealed_bounty` / `revealed_terrain` control what's shown to players. At showdown, `resolve_showdown()` always uses the full board (all 5 cards + resistance flag). Do not gate damage calc on reveal state.
@@ -113,5 +115,6 @@ class GameStateMachine:
 ## Recent Changes
 | Date | Change |
 |---|---|
+| 2026-04-19 | Added `force_hand_end_walkover()` — public helper that sets phase=HAND_END and emits `hand_ended`. Replaces private-state pokes in `GameSession._resolve_showdown`. +3 tests (total 46). |
 | 2026-04-18 | Built `server/game_state_machine.py` and `server/tests/test_game_state_machine.py`. 43 tests passing. Covers initial state, player management, phase transitions, board reveals, resistance drop, folding, showdown, multi-hand resets, and events. Total server tests: 105. |
 | 2026-04-17 | Bucket stub created. No implementation yet. |

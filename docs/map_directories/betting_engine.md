@@ -1,5 +1,5 @@
 # Betting Engine
-**Status:** ✅ Built | **Last updated:** 2026-04-18
+**Status:** ✅ Built | **Last updated:** 2026-04-19
 
 ## Purpose
 Manages one betting round: tracks turn order, validates actions (call, raise, check, fold, all-in), enforces the bet limit, calculates side pots for all-in scenarios. Caller (game session handler) creates one `BettingEngine` per round, processes player actions, and calls `finish()` to get the `BettingRoundResult`. Runs server-side, pure Python.
@@ -24,7 +24,7 @@ None — pure logic, no imports from other game modules.
 | `raise_bet(amount)` | `1 ≤ amount ≤ max_raise` | Increase `current_bet` by `amount`; re-open action for all other active players |
 | `fold()` | Any | Mark folded; advance turn |
 | `all_in()` | Any | Commit all remaining chips; if chips > `current_bet`, acts as raise (re-opens); if chips ≤ `current_bet`, acts as partial call (no re-open) |
-| `fold_player(player_id)` | Any time | Fold a specific player out of turn (for disconnect handling). No-op if already folded. Raises if unknown id. |
+| `fold_player(player_id)` | Any time | Fold a specific player out of turn (for disconnect handling). No-op if already folded. Raises if unknown id. If the folded player was the current one, turn advances to the next active player. |
 
 ## Resolved Design Issues
 - **Turn order** — `BettingEngine` takes players in turn-order; caller handles dealer rotation externally.
@@ -97,6 +97,7 @@ The GSM currently calls `advance_round()` explicitly. When wiring the Betting En
 ## Recent Changes
 | Date | Change |
 |---|---|
+| 2026-04-19 | `fold_player` now advances the turn when the folded player was the current one. Without this, a mid-turn disconnect left `current_player_id` stuck on the folded player and every subsequent `bet_action` from other clients was rejected as "Not your turn". |
 | 2026-04-18 | Built `server/betting_engine.py` and `server/tests/test_betting_engine.py`. 44 tests passing. Covers check/call/raise/fold/all-in, turn advancement, re-open-after-raise, side pots, partial-call all-in, carried pot, round completion. Total server tests: 167. |
 | 2026-04-18 | Added `fold_player(player_id)` for out-of-turn folds. Used by `GameSession.on_player_disconnect`. Total betting_engine tests: 49. |
 | 2026-04-17 | Bucket stub created. No implementation yet. |

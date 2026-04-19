@@ -1,5 +1,5 @@
 # Poper: Bounty Hunter Hold'em — System Map
-**Last updated:** 2026-04-18 | **Stage:** Pre-development (vertical slice not started; multiplayer POC confirmed on two machines)
+**Last updated:** 2026-04-19 | **Stage:** Pre-development (vertical slice not started; multiplayer POC confirmed on two machines)
 
 > This file is the index of all game systems. Read it at the start of any session involving an unfamiliar system, then open only the bucket file(s) you need. Do not load bucket files speculatively.
 
@@ -11,11 +11,11 @@
 |---|---|---|---|
 | Card Data | [card_data.md](card_data.md) | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
 | Deck Manager | [deck_manager.md](deck_manager.md) | ✅ Built | `server/deck_manager.py`; 16 tests passing; deals player hands + board draws |
-| Game State Machine | [game_state_machine.md](game_state_machine.md) | ✅ Built | `server/game_state_machine.py`; 43 tests passing; phases, reveals, resistance drop, showdown |
-| Betting Engine | [betting_engine.md](betting_engine.md) | ✅ Built | `server/betting_engine.py`; 49 tests passing; call/raise/check/fold/all-in + side pots + out-of-turn fold |
+| Game State Machine | [game_state_machine.md](game_state_machine.md) | ✅ Built | `server/game_state_machine.py`; 46 tests passing; phases, reveals, resistance drop, showdown, walkover helper |
+| Betting Engine | [betting_engine.md](betting_engine.md) | ✅ Built | `server/betting_engine.py`; 49 tests passing; call/raise/check/fold/all-in + side pots + out-of-turn fold (advances turn when current) |
 | Damage Calculator | [damage_calculator.md](damage_calculator.md) | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
-| Lobby / Networking | [lobby_networking.md](lobby_networking.md) | ✅ Built | Python WebSocket relay + Godot 4 client; room code, chat, disconnect, start_game, bet_action |
-| Game Session | [lobby_networking.md](lobby_networking.md) | ✅ Built | `server/game_session.py`; 55 tests passing; per-room GSM+Betting integration |
+| Lobby / Networking | [lobby_networking.md](lobby_networking.md) | ✅ Built | Python WebSocket relay (10s ping/pong) + Godot 4 client; room code, chat, disconnect, start_game, bet_action |
+| Game Session | [lobby_networking.md](lobby_networking.md) | ✅ Built | `server/game_session.py`; 59 tests passing; per-room GSM+Betting integration; snapshot exposes room_code + host_id |
 | Save System | [save_system.md](save_system.md) | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
 | UI | [ui.md](ui.md) | 🔲 Not built | Functional only for vertical slice |
 
@@ -134,3 +134,4 @@ These must be resolved before or during vertical slice development. Block on the
 | 2026-04-18 | Built `server/betting_engine.py` — Betting Engine. `BettingEngine` manages one betting round: check/call/raise/fold/all-in, re-open after raise, side pot calculation, partial-call all-in. 44 tests passing. Total: 167 server tests. |
 | 2026-04-18 | Built `server/game_state_machine.py` — Game State Machine. Drives the full hand lifecycle (LOBBY → CLASS_SELECTION → ROUND_1–5 → SHOWDOWN → HAND_END). Board reveals per round, 25% resistance drop at Round 3, showdown via DamageCalculator. 43 tests passing. Total: 105 server tests. |
 | 2026-04-18 | Wired GSM + Betting Engine into the relay server as `server/game_session.py`. Added `start_game` + `bet_action` protocol. One-hand-at-a-time authoritative game session: random class assignment, 100 starting chips, full board reveals, showdown + pot distribution, auto-fold on disconnect, mid-game join rejection. 245 server tests passing. |
+| 2026-04-19 | Post-ship cleanup pass. Spec drift fix (your_hand payload shape). Added `room_code`+`host_id` to `snapshot()`. New `RoomManager.get_clients(code)` accessor (replaces `_rooms` reach-ins). New `GameStateMachine.force_hand_end_walkover()` (replaces private-state pokes in `GameSession._resolve_showdown`). Fixed `BettingEngine.fold_player` to advance turn when folding the current player — mid-raise disconnect bug. Tightened websocket ping/pong to 10/10s. New tests: mid-raise disconnect; pathological all-winners-ineligible side pot fallback. 255 server tests. |

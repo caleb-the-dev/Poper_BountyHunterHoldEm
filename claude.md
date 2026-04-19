@@ -19,15 +19,15 @@
 
 - **Stage:** Pre-development — design complete, vertical slice not started; multiplayer POC confirmed on two machines
 - **Working:** Multiplayer POC — relay server + Godot 4.6 lobby client. Cross-machine tested (two laptops via ngrok): create room, join by code, player list sync, bidirectional chat all confirmed. Lobby UI scaled up (20–24px fonts, 48px inputs). (See TESTING.md)
-- **Known issue:** Abrupt client disconnect (window close) does not deliver `player_left` to remaining clients. Clean leave-room works. Deferred to vertical slice — needs heartbeat/ping-pong.
+- **Known issue (mitigated, needs live retest):** Abrupt client disconnect did not deliver `player_left` quickly through ngrok on Windows. Relay now runs with `ping_interval=10, ping_timeout=10` (was 20/20), so worst-case detection is ~20s. Godot's `WebSocketPeer` responds to protocol pings automatically. Needs a live two-machine test to confirm the fix on ngrok. Application-level heartbeat (sub-10s detection) still deferred.
 - **Vertical slice target:** Classic mode, fully playable online with 2–8 players
 - **`start_dev.py` built** — launches relay + ngrok, patches config.gd with live wss:// URL, restores on exit. Invoke with `/start-server` skill.
 - **Card Data built** — `server/card_data.py` loads all 8 Classic CSVs as typed dataclasses. 22 tests passing. See `docs/map_directories/card_data.md`.
 - **Damage Calculator built** — `server/damage_calculator.py`. `calculate_damage(hand, board) -> int`. 24 tests passing. See `docs/map_directories/damage_calculator.md`.
 - **Deck Manager built** — `server/deck_manager.py`. `deal_hands(n) -> list[PlayerHand]`, `draw_board() -> BoardDraw`. 16 tests passing. See `docs/map_directories/deck_manager.md`.
-- **Game State Machine built** — `server/game_state_machine.py`. Full hand lifecycle: LOBBY → CLASS_SELECTION → ROUND_1–5 → SHOWDOWN → HAND_END. Board reveals per round, 25% resistance drop at Round 3, showdown via DamageCalculator. 43 tests passing. See `docs/map_directories/game_state_machine.md`.
-- **Betting Engine built** — `server/betting_engine.py`. `BettingEngine` manages one betting round: check/call/raise/fold/all-in, re-open after raise, side pot calculation, out-of-turn `fold_player`. 49 tests passing. See `docs/map_directories/betting_engine.md`.
-- **Game Session Handler built** — `server/game_session.py` wires GSM + BettingEngine into the relay server as a per-room authoritative session. Host-triggered `start_game` action, `bet_action` (check/call/raise/fold/all_in), full state snapshots via `game_state` event, private `your_hand` per player, auto-fold on disconnect, mid-game join rejection. Single hand playable end-to-end. 55 session unit tests + 9 integration tests. Total server tests: 245. See `docs/map_directories/lobby_networking.md`.
+- **Game State Machine built** — `server/game_state_machine.py`. Full hand lifecycle: LOBBY → CLASS_SELECTION → ROUND_1–5 → SHOWDOWN → HAND_END. Board reveals per round, 25% resistance drop at Round 3, showdown via DamageCalculator. `force_hand_end_walkover()` short-circuits to HAND_END without damage calc for sole-survivor cases. 46 tests passing. See `docs/map_directories/game_state_machine.md`.
+- **Betting Engine built** — `server/betting_engine.py`. `BettingEngine` manages one betting round: check/call/raise/fold/all-in, re-open after raise, side pot calculation, out-of-turn `fold_player` (advances turn when current). 49 tests passing. See `docs/map_directories/betting_engine.md`.
+- **Game Session Handler built** — `server/game_session.py` wires GSM + BettingEngine into the relay server as a per-room authoritative session. Host-triggered `start_game` action, `bet_action` (check/call/raise/fold/all_in), full state snapshots via `game_state` event (includes `room_code` + `host_id`), private `your_hand` per player, auto-fold on disconnect, mid-game join rejection. Single hand playable end-to-end. 59 session unit tests + 9 integration tests. Total server tests: 255. See `docs/map_directories/lobby_networking.md`.
 - **Next task:** Build the Godot game UI — class reveal screen, hand display, board reveal animation, bet action buttons, turn indicator, showdown screen. Consume the new `game_state` / `your_hand` events from the relay. First UI milestone: play one full hand visually from two Godot clients.
 - **Build order after networking confirmed:** Card Data loader ✅ → Damage Calculator ✅ → Deck Manager ✅ → Game State Machine ✅ → Betting Engine ✅ → Game Session Handler ✅ → Godot game UI
 - **Cross-machine testing:** Second laptop available with Tailscale already set up — can use Tailscale IP instead of ngrok for LAN-free two-machine tests
@@ -64,9 +64,9 @@ The skill is the authoritative end-of-session workflow. Do not do wrap-up work a
 |---|---|---|
 | Card Data | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
 | Deck Manager | ✅ Built | `server/deck_manager.py`; 16 tests passing; deals player hands + board draws |
-| Game State Machine | ✅ Built | `server/game_state_machine.py`; 43 tests passing |
+| Game State Machine | ✅ Built | `server/game_state_machine.py`; 46 tests passing |
 | Betting Engine | ✅ Built | `server/betting_engine.py`; 49 tests passing |
-| Game Session | ✅ Built | `server/game_session.py`; wires GSM + BettingEngine; 55 tests |
+| Game Session | ✅ Built | `server/game_session.py`; wires GSM + BettingEngine; 59 tests |
 | Damage Calculator | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
 | Lobby / Networking | ✅ Built | Python WebSocket relay + Godot 4 client; room code, chat, disconnect, start_game, bet_action |
 | Save System | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
