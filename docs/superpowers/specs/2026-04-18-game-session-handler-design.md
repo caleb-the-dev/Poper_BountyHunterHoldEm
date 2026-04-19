@@ -98,7 +98,7 @@ class GameSession:
 2. Calls `RoomManager.start_game(host_client)` → constructs `GameSession`.
 3. `GameSession.__init__`:
    - Locks `player_ids` in current roster seat order.
-   - Assigns random class to each via `gsm.assign_class()` (uses `random.choice(card_set.singleclasses)`).
+   - Assigns random class to each via `gsm.assign_class()` (uses `random.choice(card_set.classes)`).
    - Calls `gsm.start_hand()` — deals hands, draws board, reveals `mods[0]`, phase → ROUND_1.
    - Creates first `BettingEngine(players=[BettingPlayer(pid, 100) for pid in player_ids])`.
 4. Relay broadcasts `game_state` to all, plus private `your_hand` to each player.

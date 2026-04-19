@@ -12,9 +12,10 @@
 | Card Data | [card_data.md](card_data.md) | ✅ Built | `server/card_data.py`; 22 tests passing; loads all 8 Classic CSVs |
 | Deck Manager | [deck_manager.md](deck_manager.md) | ✅ Built | `server/deck_manager.py`; 16 tests passing; deals player hands + board draws |
 | Game State Machine | [game_state_machine.md](game_state_machine.md) | ✅ Built | `server/game_state_machine.py`; 43 tests passing; phases, reveals, resistance drop, showdown |
-| Betting Engine | [betting_engine.md](betting_engine.md) | ✅ Built | `server/betting_engine.py`; 44 tests passing; call/raise/check/fold/all-in + side pots |
+| Betting Engine | [betting_engine.md](betting_engine.md) | ✅ Built | `server/betting_engine.py`; 49 tests passing; call/raise/check/fold/all-in + side pots + out-of-turn fold |
 | Damage Calculator | [damage_calculator.md](damage_calculator.md) | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
-| Lobby / Networking | [lobby_networking.md](lobby_networking.md) | ✅ Built (POC) | Python WebSocket relay + Godot 4 client; room code, chat, disconnect |
+| Lobby / Networking | [lobby_networking.md](lobby_networking.md) | ✅ Built | Python WebSocket relay + Godot 4 client; room code, chat, disconnect, start_game, bet_action |
+| Game Session | [lobby_networking.md](lobby_networking.md) | ✅ Built | `server/game_session.py`; 55 tests passing; per-room GSM+Betting integration |
 | Save System | [save_system.md](save_system.md) | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
 | UI | [ui.md](ui.md) | 🔲 Not built | Functional only for vertical slice |
 
@@ -23,16 +24,13 @@
 ## Dependency Graph
 
 ```
-Card Data
-  └── Deck Manager
-        └── Game State Machine
-              ├── Betting Engine (mutual dependency: GSM drives betting rounds; Betting Engine advances GSM)
-              ├── Damage Calculator
-              ├── Lobby / Networking (GSM runs server-side under authoritative host)
-              └── UI (reads GSM state for display)
-
-Damage Calculator
-  └── Card Data (reads card types for formula)
+Lobby / Networking (relay_server)
+  └── Room Manager
+        └── Game Session   (one per room when game active)
+              ├── Game State Machine
+              │     ├── Deck Manager ─── Card Data
+              │     └── Damage Calculator ─── Card Data
+              └── Betting Engine
 
 Save System
   └── Game State Machine (listens for hand_ended, game_ended to write XP/stats)
@@ -53,6 +51,9 @@ Poper_BountyHunterHoldEm/
 ├── docs/
 │   ├── game_bible.md                — design authority (DO NOT modify without user approval)
 │   ├── backlog.md                   — user-managed; do not read automatically
+│   ├── superpowers/
+│   │   ├── specs/2026-04-18-game-session-handler-design.md
+│   │   └── plans/2026-04-18-game-session-handler.md
 │   └── map_directories/
 │       ├── map.md                   — this file
 │       ├── card_data.md
@@ -65,9 +66,12 @@ Poper_BountyHunterHoldEm/
 │       └── ui.md
 ├── data/                            — CSV card data (exists; see Card Data bucket)
 │   └── (weapon, item, infusion, bounty, terrain, bounty_mod, training, feints CSVs)
+├── scripts/
+│   └── smoke_test_game.py           — two-client E2E smoke test (manual sanity)
 ├── server/                          — Python asyncio WebSocket relay server
 │   ├── relay_server.py
 │   ├── room_manager.py
+│   ├── game_session.py
 │   ├── config.py
 │   ├── card_data.py
 │   ├── damage_calculator.py
@@ -80,6 +84,8 @@ Poper_BountyHunterHoldEm/
 │       ├── conftest.py
 │       ├── test_room_manager.py
 │       ├── test_relay.py
+│       ├── test_relay_game_integration.py
+│       ├── test_game_session.py
 │       ├── test_card_data.py
 │       ├── test_damage_calculator.py
 │       ├── test_deck_manager.py
@@ -109,8 +115,8 @@ These must be resolved before or during vertical slice development. Block on the
 |---|---|---|
 | 1 | **4th card probability** — 50/50 Item vs Infusion, or weighted? | Deck Manager |
 | 2 | **Infusion stacking** — Duplicate Infusion cards: each +0.5, or capped at one per type? | Damage Calculator |
-| 3 | **Betting order** — Dealer button, clockwise turn order, under-bet all-in handling | Betting Engine |
-| 4 | **Side pot + fold** — Can a folded player win a side pot they were all-in for? | Betting Engine |
+| 3 | ~~**Betting order**~~ — **Resolved:** `BettingEngine` takes players in turn order; caller (Game Session) handles dealer rotation externally. Under-bet all-ins commit all chips without raising `current_bet`. | Betting Engine |
+| 4 | ~~**Side pot + fold**~~ — **Resolved:** folded players are never eligible for any pot. Chips put in before folding remain in the pot. | Betting Engine |
 
 ---
 
@@ -127,3 +133,4 @@ These must be resolved before or during vertical slice development. Block on the
 | 2026-04-18 | Built `server/deck_manager.py` — Deck Manager. `deal_hands(n) -> list[PlayerHand]` and `draw_board() -> BoardDraw`. Player deck rebuilt each hand; board sub-piles (bounty/terrain/mod) persist and reshuffle independently when depleted. 16 tests passing. Total: 62 server tests. |
 | 2026-04-18 | Built `server/betting_engine.py` — Betting Engine. `BettingEngine` manages one betting round: check/call/raise/fold/all-in, re-open after raise, side pot calculation, partial-call all-in. 44 tests passing. Total: 167 server tests. |
 | 2026-04-18 | Built `server/game_state_machine.py` — Game State Machine. Drives the full hand lifecycle (LOBBY → CLASS_SELECTION → ROUND_1–5 → SHOWDOWN → HAND_END). Board reveals per round, 25% resistance drop at Round 3, showdown via DamageCalculator. 43 tests passing. Total: 105 server tests. |
+| 2026-04-18 | Wired GSM + Betting Engine into the relay server as `server/game_session.py`. Added `start_game` + `bet_action` protocol. One-hand-at-a-time authoritative game session: random class assignment, 100 starting chips, full board reveals, showdown + pot distribution, auto-fold on disconnect, mid-game join rejection. 245 server tests passing. |
