@@ -152,7 +152,7 @@ Existing actions (`set_name`, `create_room`, `join_room`, `chat`, `leave_room`) 
 | Event | Payload | When |
 |---|---|---|
 | `game_state` | Full shared snapshot (below) | After `start_game`, after every `bet_action`, after every round transition, after showdown |
-| `your_hand` | `{hand: {weapon, item_a, item_b, infusion}, class_card: {...}}` | Sent privately to each player right after `start_game` |
+| `your_hand` | `{hand: {weapon, item, infusion, fourth_card}, class_card: {...}}` — `fourth_card` is a random Item or Infusion (see Card Data) | Sent privately to each player right after `start_game` |
 | `error` | `{message: str}` (existing) | On invalid action — sender only, no state change |
 
 ### `game_state` snapshot shape

@@ -238,6 +238,8 @@ class GameSession:
         pot = self.betting.pot if self.betting else self.pot_carry
 
         return {
+            "room_code": self.room_code,
+            "host_id": self.host_id,
             "phase": self.gsm.phase.value,
             "players": players_out,
             "current_player_id": current_player_id,

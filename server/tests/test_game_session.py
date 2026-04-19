@@ -375,6 +375,12 @@ def test_snapshot_has_phase(card_set):
     snap = s.snapshot()
     assert snap["phase"] == "round_1"
 
+def test_snapshot_has_room_code_and_host_id(card_set):
+    s = _make_session(card_set)
+    snap = s.snapshot()
+    assert snap["room_code"] == "1234"
+    assert snap["host_id"] == "p0"
+
 def test_snapshot_has_players_with_public_fields(card_set):
     s = _make_session(card_set, n_players=3)
     snap = s.snapshot()
