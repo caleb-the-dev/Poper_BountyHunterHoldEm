@@ -189,6 +189,15 @@ class GameStateMachine:
             self._phase = GamePhase.SHOWDOWN
             self._events.append("showdown_started")
 
+    def force_hand_end_walkover(self) -> None:
+        """Jump to HAND_END without a damage showdown — used when only one player
+        remains (everyone else folded) and the caller has already decided the winner.
+        Valid from any in-hand phase (ROUND_1..SHOWDOWN)."""
+        if self._phase not in _ROUND_PHASES and self._phase != GamePhase.SHOWDOWN:
+            raise ValueError(f"Cannot force hand end from {self._phase}")
+        self._phase = GamePhase.HAND_END
+        self._events.append("hand_ended")
+
     def resolve_showdown(self) -> ShowdownResult:
         if self._phase != GamePhase.SHOWDOWN:
             raise ValueError(f"Must be in SHOWDOWN phase, currently {self._phase}")

@@ -133,13 +133,10 @@ class GameSession:
         non_folded = [p.player_id for p in self.gsm.players if not p.folded]
 
         if len(non_folded) == 1:
-            # Walkover — sole survivor wins all pots, no damage calc
             winner = non_folded[0]
             total = sum(p.amount for p in self.last_round_pots)
             self.chips[winner] += total
-            # Bypass GSM's resolve_showdown to avoid damage calc; advance to HAND_END directly
-            self.gsm._phase = GamePhase.HAND_END  # type: ignore[attr-defined]
-            self.gsm._events.append("hand_ended")  # type: ignore[attr-defined]
+            self.gsm.force_hand_end_walkover()
             self.showdown = {
                 "damages": {},
                 "winner_ids": [winner],

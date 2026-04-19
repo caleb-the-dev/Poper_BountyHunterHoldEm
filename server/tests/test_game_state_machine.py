@@ -401,3 +401,26 @@ def test_hand_ended_event_emitted_after_resolve_showdown():
     _advance_to_showdown(gsm)
     gsm.resolve_showdown()
     assert "hand_ended" in gsm.events
+
+
+def test_force_hand_end_walkover_sets_phase_and_event():
+    gsm = _make_gsm()
+    _advance_to_showdown(gsm)
+    gsm.force_hand_end_walkover()
+    assert gsm.phase == GamePhase.HAND_END
+    assert "hand_ended" in gsm.events
+
+
+def test_force_hand_end_walkover_from_round_phase():
+    gsm = _make_gsm()
+    gsm.start_hand()
+    assert gsm.phase == GamePhase.ROUND_1
+    gsm.force_hand_end_walkover()
+    assert gsm.phase == GamePhase.HAND_END
+    assert "hand_ended" in gsm.events
+
+
+def test_force_hand_end_walkover_invalid_from_lobby():
+    gsm = GameStateMachine(_make_card_set(2), rng=random.Random(42))
+    with pytest.raises(ValueError):
+        gsm.force_hand_end_walkover()
