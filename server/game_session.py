@@ -3,7 +3,7 @@ from typing import Optional
 
 from card_data import CardSet
 from game_state_machine import GameStateMachine
-from betting_engine import BettingEngine, BettingPlayer
+from betting_engine import BettingEngine, BettingPlayer, _PlayerState
 
 STARTING_CHIPS = 100
 
@@ -210,3 +210,71 @@ class GameSession:
             elif self.gsm.phase == GamePhase.SHOWDOWN:
                 # GSM auto-transitioned (all-but-one folded)
                 self._finish_round()
+
+    def snapshot(self) -> dict:
+        """Return the public state dict the relay broadcasts to all clients."""
+        gsm_states = {p.player_id: p for p in self.gsm.players}
+        bet_states = {}
+        if self.betting is not None:
+            bet_states = {s.player_id: s for s in self.betting._states}  # type: ignore[attr-defined]
+
+        players_out = []
+        for pid in self.player_ids:
+            gsm_p = gsm_states.get(pid)
+            bet_p = bet_states.get(pid)
+            players_out.append({
+                "player_id": pid,
+                "name": self.names.get(pid, pid),
+                "chips": self.chips.get(pid, 0),
+                "bet_this_round": bet_p.bet_this_round if bet_p else 0,
+                "folded": gsm_p.folded if gsm_p else False,
+                "all_in": bet_p.all_in if bet_p else False,
+                "class_name": gsm_p.class_card.name if gsm_p and gsm_p.class_card else None,
+            })
+
+        current_player_id = self.betting.current_player_id if self.betting else None
+        current_bet = self.betting.current_bet if self.betting else 0
+        max_raise = self.betting.max_raise if self.betting else 0
+        pot = self.betting.pot if self.betting else self.pot_carry
+
+        return {
+            "phase": self.gsm.phase.value,
+            "players": players_out,
+            "current_player_id": current_player_id,
+            "current_bet": current_bet,
+            "max_raise": max_raise,
+            "pot": pot,
+            "board": self._board_snapshot(),
+            "resistance_dropped": self.gsm.resistance_dropped,
+            "showdown": self.showdown,
+        }
+
+    def _board_snapshot(self) -> dict:
+        return {
+            "bounty": self._card_to_dict(self.gsm.revealed_bounty),
+            "terrain": self._card_to_dict(self.gsm.revealed_terrain),
+            "mods_revealed": [self._card_to_dict(m) for m in self.gsm.active_mods],
+        }
+
+    @staticmethod
+    def _card_to_dict(card) -> Optional[dict]:
+        if card is None:
+            return None
+        return {k: v for k, v in card.__dict__.items()}
+
+    def private_hand(self, player_id: str) -> Optional[dict]:
+        """Return private hand info for a specific player. None if player not found."""
+        for p in self.gsm.players:
+            if p.player_id == player_id:
+                if p.hand is None or p.class_card is None:
+                    return None
+                return {
+                    "hand": {
+                        "weapon": self._card_to_dict(p.hand.weapon),
+                        "item": self._card_to_dict(p.hand.item),
+                        "infusion": self._card_to_dict(p.hand.infusion),
+                        "fourth_card": self._card_to_dict(p.hand.fourth_card),
+                    },
+                    "class_card": self._card_to_dict(p.class_card),
+                }
+        return None

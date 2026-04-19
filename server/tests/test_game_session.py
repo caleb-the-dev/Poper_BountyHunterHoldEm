@@ -366,3 +366,84 @@ def test_disconnect_after_hand_end_is_noop(card_set):
     s.apply_bet_action("p2", "fold")
     # Hand is over
     s.on_player_disconnect("p0")  # should not raise
+
+
+# --- Snapshot ---
+
+def test_snapshot_has_phase(card_set):
+    s = _make_session(card_set)
+    snap = s.snapshot()
+    assert snap["phase"] == "round_1"
+
+def test_snapshot_has_players_with_public_fields(card_set):
+    s = _make_session(card_set, n_players=3)
+    snap = s.snapshot()
+    assert len(snap["players"]) == 3
+    p0 = snap["players"][0]
+    assert p0["player_id"] == "p0"
+    assert p0["name"] == "Player0"
+    assert p0["chips"] == STARTING_CHIPS
+    assert p0["bet_this_round"] == 0
+    assert p0["folded"] is False
+    assert p0["all_in"] is False
+    assert p0["class_name"] is not None
+
+def test_snapshot_current_player_during_betting(card_set):
+    s = _make_session(card_set)
+    snap = s.snapshot()
+    assert snap["current_player_id"] == "p0"
+    assert snap["current_bet"] == 0
+    assert snap["max_raise"] == 10
+    assert snap["pot"] == 0
+
+def test_snapshot_current_player_none_at_hand_end(card_set):
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    s.apply_bet_action("p1", "fold")
+    s.apply_bet_action("p2", "fold")
+    snap = s.snapshot()
+    assert snap["current_player_id"] is None
+
+def test_snapshot_board_bounty_null_before_reveal(card_set):
+    s = _make_session(card_set)
+    snap = s.snapshot()
+    assert snap["board"]["bounty"] is None
+    assert snap["board"]["terrain"] is None
+    assert len(snap["board"]["mods_revealed"]) == 1  # Round 1: mods[0]
+
+def test_snapshot_board_after_round_1(card_set):
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "check")
+    s.apply_bet_action("p1", "check")
+    snap = s.snapshot()
+    assert snap["board"]["bounty"] is not None
+
+def test_snapshot_resistance_dropped_field(card_set):
+    s = _make_session(card_set)
+    snap = s.snapshot()
+    assert snap["resistance_dropped"] is False
+
+def test_snapshot_showdown_field_populated_at_hand_end(card_set):
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    s.apply_bet_action("p1", "fold")
+    s.apply_bet_action("p2", "fold")
+    snap = s.snapshot()
+    assert snap["showdown"] is not None
+    assert snap["showdown"]["winner_ids"] == ["p0"]
+
+def test_snapshot_showdown_null_before_hand_end(card_set):
+    s = _make_session(card_set)
+    snap = s.snapshot()
+    assert snap["showdown"] is None
+
+def test_private_hand_for_player(card_set):
+    s = _make_session(card_set)
+    priv = s.private_hand("p0")
+    assert "hand" in priv
+    assert "class_card" in priv
+    assert priv["hand"]["weapon"] is not None
+
+def test_private_hand_unknown_player_returns_none(card_set):
+    s = _make_session(card_set)
+    assert s.private_hand("nobody") is None
