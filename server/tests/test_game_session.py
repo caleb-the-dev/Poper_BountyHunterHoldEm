@@ -97,3 +97,67 @@ def test_starting_chips_is_100():
 def test_invalid_action_error_carries_message():
     err = InvalidActionError("something bad")
     assert str(err) == "something bad"
+
+
+# --- apply_bet_action (basic delegation) ---
+
+def test_apply_bet_action_check_delegates(card_set):
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "check")
+    assert s.betting.current_player_id == "p1"
+
+def test_apply_bet_action_call_delegates(card_set):
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    s.apply_bet_action("p1", "call")
+    assert s.betting.current_player_id == "p2"
+    assert s.betting.current_bet == 10
+
+def test_apply_bet_action_raise_delegates(card_set):
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "raise", 10)
+    assert s.betting.current_bet == 10
+
+def test_apply_bet_action_fold_delegates(card_set):
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    s.apply_bet_action("p1", "fold")
+    # p1 should be folded in both BettingEngine and GSM
+    folded_in_gsm = {p.player_id for p in s.gsm.players if p.folded}
+    assert "p1" in folded_in_gsm
+
+def test_apply_bet_action_all_in_delegates(card_set):
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "all_in")
+    assert s.betting.current_bet == STARTING_CHIPS
+
+def test_apply_bet_action_rejects_wrong_player(card_set):
+    s = _make_session(card_set)
+    # p0 is current, but p1 tries to act
+    with pytest.raises(InvalidActionError) as exc:
+        s.apply_bet_action("p1", "check")
+    assert "turn" in str(exc.value).lower()
+
+def test_apply_bet_action_rejects_unknown_type(card_set):
+    s = _make_session(card_set)
+    with pytest.raises(InvalidActionError):
+        s.apply_bet_action("p0", "squawk")
+
+def test_apply_bet_action_rejects_raise_without_amount(card_set):
+    s = _make_session(card_set)
+    with pytest.raises(InvalidActionError):
+        s.apply_bet_action("p0", "raise")
+
+def test_apply_bet_action_translates_betting_engine_errors(card_set):
+    s = _make_session(card_set)
+    # Raising 999 exceeds max_raise=10 at start of hand
+    with pytest.raises(InvalidActionError) as exc:
+        s.apply_bet_action("p0", "raise", 999)
+    assert "max" in str(exc.value).lower() or "too large" in str(exc.value).lower()
+
+def test_apply_bet_action_translates_check_with_bet_error(card_set):
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    with pytest.raises(InvalidActionError) as exc:
+        s.apply_bet_action("p1", "check")
+    assert "check" in str(exc.value).lower() or "bet" in str(exc.value).lower()

@@ -58,3 +58,41 @@ class GameSession:
             if pid not in folded and self.chips[pid] > 0
         ]
         return BettingEngine(bplayers, pot_entering_round=self.pot_carry)
+
+    def apply_bet_action(self, player_id: str, action_type: str, amount: Optional[int] = None) -> None:
+        """Apply a player's betting action. Raises InvalidActionError on rule violations."""
+        if self.betting is None:
+            raise InvalidActionError("No betting round is active")
+        if player_id != self.betting.current_player_id:
+            raise InvalidActionError("Not your turn")
+
+        try:
+            if action_type == "check":
+                self.betting.check()
+            elif action_type == "call":
+                self.betting.call()
+            elif action_type == "raise":
+                if amount is None:
+                    raise InvalidActionError("Raise requires amount")
+                self.betting.raise_bet(amount)
+            elif action_type == "fold":
+                self.betting.fold()
+                self.gsm.fold(player_id)
+            elif action_type == "all_in":
+                self.betting.all_in()
+            else:
+                raise InvalidActionError(f"Invalid bet action type: {action_type!r}")
+        except ValueError as e:
+            raise InvalidActionError(self._translate_betting_error(str(e))) from e
+
+    @staticmethod
+    def _translate_betting_error(msg: str) -> str:
+        if "Cannot check" in msg:
+            return "Cannot check — there is a bet to call"
+        if "exceeds max raise" in msg:
+            return f"Raise too large — {msg.split('exceeds ')[-1]}"
+        if "at least 1" in msg:
+            return "Raise must be at least 1"
+        if "Not enough chips" in msg:
+            return "Not enough chips for that raise"
+        return msg
