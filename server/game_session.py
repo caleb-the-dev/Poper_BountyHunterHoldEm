@@ -189,3 +189,24 @@ class GameSession:
         if "Not enough chips" in msg:
             return "Not enough chips for that raise"
         return msg
+
+    def on_player_disconnect(self, player_id: str) -> None:
+        """Handle a player disconnecting mid-game. Auto-folds them.
+        No-op if player isn't in this session, already folded, or game is over."""
+        from game_state_machine import GamePhase
+
+        if player_id not in self.player_ids:
+            return
+        if self.gsm.phase in (GamePhase.HAND_END, GamePhase.GAME_END):
+            return
+        if any(p.player_id == player_id and p.folded for p in self.gsm.players):
+            return
+
+        self.gsm.fold(player_id)
+        if self.betting is not None:
+            self.betting.fold_player(player_id)
+            if self.betting.is_round_complete:
+                self._finish_round()
+            elif self.gsm.phase == GamePhase.SHOWDOWN:
+                # GSM auto-transitioned (all-but-one folded)
+                self._finish_round()

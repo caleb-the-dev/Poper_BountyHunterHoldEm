@@ -317,3 +317,52 @@ def test_fast_forward_one_broke_one_has_chips(card_set):
     # p0 and p1 are both all-in; p2 still has chips but is alone.
     # Fast-forward should activate
     assert s.gsm.phase == GamePhase.HAND_END
+
+# --- Disconnect handling ---
+
+def test_disconnect_current_player_auto_folds(card_set):
+    s = _make_session(card_set, n_players=3)
+    assert s.betting.current_player_id == "p0"
+    s.on_player_disconnect("p0")
+    folded_in_gsm = {p.player_id for p in s.gsm.players if p.folded}
+    assert "p0" in folded_in_gsm
+
+def test_disconnect_non_current_player_auto_folds(card_set):
+    s = _make_session(card_set, n_players=3)
+    # p0 is current; disconnect p2 (out of turn)
+    s.on_player_disconnect("p2")
+    folded_in_gsm = {p.player_id for p in s.gsm.players if p.folded}
+    assert "p2" in folded_in_gsm
+    # Current turn unchanged (still p0)
+    assert s.betting.current_player_id == "p0"
+
+def test_disconnect_when_all_but_one_left_goes_to_showdown(card_set):
+    from game_state_machine import GamePhase
+    s = _make_session(card_set, n_players=3)
+    s.on_player_disconnect("p1")
+    s.on_player_disconnect("p2")
+    # Only p0 left — should fast-forward to HAND_END with p0 as winner
+    assert s.gsm.phase == GamePhase.HAND_END
+    assert s.showdown["winner_ids"] == ["p0"]
+
+def test_disconnect_unknown_player_is_noop(card_set):
+    s = _make_session(card_set)
+    s.on_player_disconnect("nobody")  # should not raise
+    folded_in_gsm = {p.player_id for p in s.gsm.players if p.folded}
+    assert folded_in_gsm == set()
+
+def test_disconnect_already_folded_player_is_noop(card_set):
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    s.apply_bet_action("p1", "fold")
+    s.on_player_disconnect("p1")  # already folded; should not error
+    folded_in_gsm = [p.player_id for p in s.gsm.players if p.folded]
+    assert folded_in_gsm.count("p1") == 1
+
+def test_disconnect_after_hand_end_is_noop(card_set):
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    s.apply_bet_action("p1", "fold")
+    s.apply_bet_action("p2", "fold")
+    # Hand is over
+    s.on_player_disconnect("p0")  # should not raise
