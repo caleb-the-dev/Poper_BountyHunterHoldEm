@@ -85,6 +85,33 @@ class GameSession:
         except ValueError as e:
             raise InvalidActionError(self._translate_betting_error(str(e))) from e
 
+        if self.betting.is_round_complete:
+            self._finish_round()
+
+    def _finish_round(self) -> None:
+        """Close the current betting round, advance GSM, open the next round (or showdown)."""
+        from game_state_machine import GamePhase
+
+        result = self.betting.finish()
+        for pid in result.folded_player_ids:
+            if not any(p.player_id == pid and p.folded for p in self.gsm.players):
+                self.gsm.fold(pid)
+        self.chips = dict(result.remaining_chips)
+        self.pot_carry = sum(p.amount for p in result.pots)
+        self.last_round_pots = list(result.pots)
+
+        if self.gsm.phase == GamePhase.SHOWDOWN:
+            # All-but-one folded — GSM auto-transitioned; showdown logic is Task 5
+            self.betting = None
+            return
+
+        self.gsm.advance_round()
+        if self.gsm.phase == GamePhase.SHOWDOWN:
+            self.betting = None
+            return
+
+        self.betting = self._new_betting_engine()
+
     @staticmethod
     def _translate_betting_error(msg: str) -> str:
         if "Cannot check" in msg:

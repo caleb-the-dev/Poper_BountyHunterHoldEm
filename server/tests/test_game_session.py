@@ -161,3 +161,51 @@ def test_apply_bet_action_translates_check_with_bet_error(card_set):
     with pytest.raises(InvalidActionError) as exc:
         s.apply_bet_action("p1", "check")
     assert "check" in str(exc.value).lower() or "bet" in str(exc.value).lower()
+
+
+# --- Round transitions ---
+
+def test_round_transition_advances_gsm_phase(card_set):
+    from game_state_machine import GamePhase
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "check")
+    s.apply_bet_action("p1", "check")
+    assert s.gsm.phase == GamePhase.ROUND_2
+
+def test_round_transition_creates_new_betting_engine(card_set):
+    s = _make_session(card_set)
+    first_engine = s.betting
+    s.apply_bet_action("p0", "check")
+    s.apply_bet_action("p1", "check")
+    assert s.betting is not first_engine
+    assert s.betting.current_bet == 0
+
+def test_round_transition_resets_turn_to_first_player(card_set):
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "check")
+    s.apply_bet_action("p1", "check")
+    assert s.betting.current_player_id == "p0"
+
+def test_round_transition_carries_pot_into_next_round(card_set):
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "raise", 10)  # pot=10
+    s.apply_bet_action("p1", "call")       # pot=20
+    # New round begins with pot_entering_round=20
+    assert s.pot_carry == 20
+    assert s.betting.pot == 20
+
+def test_round_transition_deducts_chips_correctly(card_set):
+    s = _make_session(card_set)
+    s.apply_bet_action("p0", "raise", 10)
+    s.apply_bet_action("p1", "call")
+    assert s.chips["p0"] == 90
+    assert s.chips["p1"] == 90
+
+def test_multiple_round_transitions(card_set):
+    from game_state_machine import GamePhase
+    s = _make_session(card_set)
+    for _ in range(4):
+        s.apply_bet_action("p0", "check")
+        s.apply_bet_action("p1", "check")
+    # 4 check-check pairs → R1→R2→R3→R4→R5
+    assert s.gsm.phase == GamePhase.ROUND_5
