@@ -86,3 +86,84 @@ def test_get_roommates_excludes_self(rm):
 
 def test_get_roommates_returns_empty_when_not_in_room(rm):
     assert rm.get_roommates(FakeClient("Nobody")) == []
+
+
+# --- Game session integration ---
+
+import os as _os, random as _random
+from card_data import load_all as _load_all
+
+_DATA_DIR_ROOM = _os.path.join(_os.path.dirname(__file__), "..", "..", "docs", "csv_data")
+
+
+class _FakeClient:
+    def __init__(self, name):
+        self.name = name
+
+
+def _make_manager_with_room(n_players):
+    from room_manager import RoomManager
+    mgr = RoomManager()
+    clients = [_FakeClient(f"Player{i}") for i in range(n_players)]
+    code = mgr.create_room(clients[0])
+    for c in clients[1:]:
+        mgr.join_room(code, c)
+    return mgr, code, clients
+
+
+def test_get_host_returns_room_creator():
+    mgr, code, clients = _make_manager_with_room(3)
+    assert mgr.get_host(code) is clients[0]
+
+def test_get_host_unknown_room_returns_none():
+    from room_manager import RoomManager
+    mgr = RoomManager()
+    assert mgr.get_host("9999") is None
+
+def test_start_game_creates_game_session():
+    mgr, code, clients = _make_manager_with_room(2)
+    card_set = _load_all(_DATA_DIR_ROOM)
+    session = mgr.start_game(clients[0], card_set, rng=_random.Random(42))
+    assert session is not None
+    assert mgr.get_game_session(code) is session
+
+def test_start_game_rejects_non_host():
+    mgr, code, clients = _make_manager_with_room(3)
+    card_set = _load_all(_DATA_DIR_ROOM)
+    with pytest.raises(ValueError):
+        mgr.start_game(clients[1], card_set)
+
+def test_start_game_rejects_if_already_in_progress():
+    mgr, code, clients = _make_manager_with_room(2)
+    card_set = _load_all(_DATA_DIR_ROOM)
+    mgr.start_game(clients[0], card_set, rng=_random.Random(42))
+    with pytest.raises(ValueError):
+        mgr.start_game(clients[0], card_set, rng=_random.Random(42))
+
+def test_start_game_rejects_if_fewer_than_2_players():
+    from room_manager import RoomManager
+    mgr = RoomManager()
+    solo = _FakeClient("Solo")
+    mgr.create_room(solo)
+    card_set = _load_all(_DATA_DIR_ROOM)
+    with pytest.raises(ValueError):
+        mgr.start_game(solo, card_set, rng=_random.Random(42))
+
+def test_get_game_session_by_client():
+    mgr, code, clients = _make_manager_with_room(2)
+    card_set = _load_all(_DATA_DIR_ROOM)
+    session = mgr.start_game(clients[0], card_set, rng=_random.Random(42))
+    assert mgr.get_game_session_for_client(clients[1]) is session
+
+def test_room_cleared_on_leave_clears_session_if_last_out():
+    mgr, code, clients = _make_manager_with_room(2)
+    card_set = _load_all(_DATA_DIR_ROOM)
+    mgr.start_game(clients[0], card_set, rng=_random.Random(42))
+    mgr.leave_room(clients[0])
+    mgr.leave_room(clients[1])
+    assert mgr.get_game_session(code) is None  # room gone
+
+def test_get_player_id_for_client():
+    """Canonical player_id for a client is str(id(client))."""
+    mgr, code, clients = _make_manager_with_room(2)
+    assert mgr.get_player_id(clients[0]) == str(id(clients[0]))
