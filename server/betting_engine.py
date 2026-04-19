@@ -121,6 +121,18 @@ class BettingEngine:
         state.round_acted = True
         self._advance_turn()
 
+    def fold_player(self, player_id: str) -> None:
+        """Fold a specific player regardless of whose turn it is.
+        Used for disconnect handling. No-op if already folded."""
+        for state in self._states:
+            if state.player_id == player_id:
+                if state.folded:
+                    return
+                state.folded = True
+                state.round_acted = True
+                return
+        raise ValueError(f"Player {player_id!r} not found")
+
     def all_in(self) -> None:
         self._go_all_in(self._states[self._turn_idx])
 

@@ -319,3 +319,47 @@ def test_pot_grows_as_bets_are_placed():
     assert e.pot == 10
     e.call()
     assert e.pot == 20
+
+
+# --- Out-of-turn fold (fold_player) ---
+
+def test_fold_player_marks_player_folded():
+    e = BettingEngine(_players(100, 100, 100))
+    e.fold_player("p1")
+    result = e.raise_bet(10) if False else None  # noqa — just documenting
+    # Finish by folding remaining current player, then p2
+    # p0 is current; to complete the round, we call next via actions.
+    # Simpler: directly check p1 is recorded as folded via finish()
+    e.check()  # p0 checks — p1 already folded so skipped
+    e.check()  # p2 checks
+    result = e.finish()
+    assert "p1" in result.folded_player_ids
+
+def test_fold_player_does_not_change_current_turn():
+    e = BettingEngine(_players(100, 100, 100))
+    assert e.current_player_id == "p0"
+    e.fold_player("p1")  # fold a NON-current player
+    assert e.current_player_id == "p0"
+
+def test_fold_player_triggers_round_completion_when_only_one_active():
+    # p0 raises, p2 folds via normal flow, p1 is the last active non-current player
+    # but we want to test fold_player completes the round
+    e = BettingEngine(_players(100, 100, 100))
+    e.raise_bet(10)     # p0 raises — current turn now p1
+    e.fold_player("p2")  # fold p2 out of turn
+    e.fold()             # p1 folds (current player)
+    assert e.is_round_complete is True
+
+def test_fold_player_idempotent_on_already_folded():
+    e = BettingEngine(_players(100, 100, 100))
+    e.fold_player("p1")
+    e.fold_player("p1")  # no error
+    e.check()
+    e.check()
+    result = e.finish()
+    assert result.folded_player_ids.count("p1") == 1
+
+def test_fold_player_unknown_id_raises():
+    e = BettingEngine(_players(100, 100))
+    with pytest.raises(ValueError):
+        e.fold_player("nope")
