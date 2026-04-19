@@ -367,6 +367,53 @@ def test_disconnect_after_hand_end_is_noop(card_set):
     # Hand is over
     s.on_player_disconnect("p0")  # should not raise
 
+def test_distribute_pots_side_pot_fallback_when_damage_winner_ineligible(card_set):
+    # Pathological case: a side pot's eligible set doesn't contain any damage
+    # winner. Happens when the sole damage winner went all-in early (only
+    # eligible for the main pot) and the side pot is contested only among
+    # players who lost the damage race. Fallback: highest-damage eligible wins.
+    from betting_engine import Pot
+    s = _make_session(card_set, n_players=3)
+    s.last_round_pots = [
+        Pot(amount=30, eligible_player_ids=["p0", "p1", "p2"]),
+        Pot(amount=20, eligible_player_ids=["p1", "p2"]),
+    ]
+    damages = {"p0": 50, "p1": 30, "p2": 20}
+    dist = s._distribute_pots(winner_ids=["p0"], damages=damages)
+    assert dist["p0"] == 30  # main pot: damage winner is eligible
+    assert dist["p1"] == 20  # side pot fallback: p1 has higher damage than p2
+
+def test_distribute_pots_side_pot_fallback_splits_tied_damages(card_set):
+    from betting_engine import Pot
+    s = _make_session(card_set, n_players=3)
+    s.last_round_pots = [
+        Pot(amount=21, eligible_player_ids=["p1", "p2"]),
+    ]
+    damages = {"p0": 50, "p1": 30, "p2": 30}
+    dist = s._distribute_pots(winner_ids=["p0"], damages=damages)
+    # Tie between p1 and p2 on damage; split 21 → 10 each + 1 remainder to
+    # earliest-seated (p1)
+    assert dist["p1"] == 11
+    assert dist["p2"] == 10
+
+def test_disconnect_mid_raise_remaining_players_finish_round(card_set):
+    # p0 raises; p1 disconnects before acting; p2 is still pending.
+    # Reopen-after-raise semantics: once p1 is auto-folded, p2 must act to close.
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    assert s.betting.current_player_id == "p1"
+    s.on_player_disconnect("p1")
+    # p1 folded, turn passed to p2 (non-current disconnect does not shift turn
+    # if p1 wasn't current — but p1 was current here, so turn must advance)
+    assert s.betting.current_player_id == "p2"
+    folded = {p.player_id for p in s.gsm.players if p.folded}
+    assert folded == {"p1"}
+    # p2 calls, closing round 1; session advances into round 2
+    s.apply_bet_action("p2", "call")
+    from game_state_machine import GamePhase
+    assert s.gsm.phase == GamePhase.ROUND_2
+    assert s.chips["p1"] == STARTING_CHIPS  # p1 never bet chips this round
+
 
 # --- Snapshot ---
 

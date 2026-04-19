@@ -123,13 +123,17 @@ class BettingEngine:
 
     def fold_player(self, player_id: str) -> None:
         """Fold a specific player regardless of whose turn it is.
-        Used for disconnect handling. No-op if already folded."""
-        for state in self._states:
+        Used for disconnect handling. No-op if already folded.
+        Advances the turn if the folded player was the current one so the
+        caller can continue prompting the next player."""
+        for idx, state in enumerate(self._states):
             if state.player_id == player_id:
                 if state.folded:
                     return
                 state.folded = True
                 state.round_acted = True
+                if idx == self._turn_idx:
+                    self._advance_turn()
                 return
         raise ValueError(f"Player {player_id!r} not found")
 
