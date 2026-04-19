@@ -47,6 +47,7 @@ class GameSession:
         self.chips: dict = {pid: STARTING_CHIPS for pid in self.player_ids}
         self.pot_carry: int = 0
         self.last_round_pots: list = []
+        self.showdown: Optional[dict] = None
         self.betting: Optional[BettingEngine] = self._new_betting_engine()
 
     def _new_betting_engine(self) -> BettingEngine:
@@ -96,21 +97,76 @@ class GameSession:
         for pid in result.folded_player_ids:
             if not any(p.player_id == pid and p.folded for p in self.gsm.players):
                 self.gsm.fold(pid)
-        self.chips = dict(result.remaining_chips)
+        # Merge updated chips into self.chips — preserves folded players from prior rounds
+        # who were excluded from this BettingEngine but still hold their chips.
+        self.chips.update(result.remaining_chips)
         self.pot_carry = sum(p.amount for p in result.pots)
         self.last_round_pots = list(result.pots)
 
         if self.gsm.phase == GamePhase.SHOWDOWN:
-            # All-but-one folded — GSM auto-transitioned; showdown logic is Task 5
-            self.betting = None
+            self._resolve_showdown()
             return
 
         self.gsm.advance_round()
         if self.gsm.phase == GamePhase.SHOWDOWN:
-            self.betting = None
+            self._resolve_showdown()
             return
 
         self.betting = self._new_betting_engine()
+
+    def _resolve_showdown(self) -> None:
+        """Handle SHOWDOWN phase: calculate damage (if more than one player left),
+        distribute pots, populate self.showdown."""
+        from game_state_machine import GamePhase
+
+        self.betting = None
+        non_folded = [p.player_id for p in self.gsm.players if not p.folded]
+
+        if len(non_folded) == 1:
+            # Walkover — sole survivor wins all pots, no damage calc
+            winner = non_folded[0]
+            total = sum(p.amount for p in self.last_round_pots)
+            self.chips[winner] += total
+            # Bypass GSM's resolve_showdown to avoid damage calc; advance to HAND_END directly
+            self.gsm._phase = GamePhase.HAND_END  # type: ignore[attr-defined]
+            self.gsm._events.append("hand_ended")  # type: ignore[attr-defined]
+            self.showdown = {
+                "damages": {},
+                "winner_ids": [winner],
+                "pot_distribution": {winner: total},
+            }
+            return
+
+        result = self.gsm.resolve_showdown()
+        distribution = self._distribute_pots(result.winner_ids, result.damages)
+        for pid, amount in distribution.items():
+            self.chips[pid] += amount
+        self.showdown = {
+            "damages": dict(result.damages),
+            "winner_ids": list(result.winner_ids),
+            "pot_distribution": distribution,
+        }
+
+    def _distribute_pots(self, winner_ids: list, damages: dict) -> dict:
+        """Distribute every pot among eligible winners. Returns {player_id: total_won}."""
+        distribution: dict = {}
+        for pot in self.last_round_pots:
+            eligible_winners = [pid for pid in pot.eligible_player_ids if pid in winner_ids]
+            if not eligible_winners:
+                # Pathological fallback: award to highest-damage eligible player
+                eligible_damages = {pid: damages.get(pid, 0) for pid in pot.eligible_player_ids}
+                if not eligible_damages:
+                    continue
+                max_d = max(eligible_damages.values())
+                eligible_winners = [pid for pid, d in eligible_damages.items() if d == max_d]
+            share, remainder = divmod(pot.amount, len(eligible_winners))
+            # Earliest-seated eligible winner gets remainder
+            seated_order = [pid for pid in self.player_ids if pid in eligible_winners]
+            for pid in seated_order:
+                distribution[pid] = distribution.get(pid, 0) + share
+            if remainder > 0:
+                distribution[seated_order[0]] += remainder
+        return distribution
 
     @staticmethod
     def _translate_betting_error(msg: str) -> str:
