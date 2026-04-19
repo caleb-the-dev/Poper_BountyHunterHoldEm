@@ -326,7 +326,6 @@ def test_pot_grows_as_bets_are_placed():
 def test_fold_player_marks_player_folded():
     e = BettingEngine(_players(100, 100, 100))
     e.fold_player("p1")
-    result = e.raise_bet(10) if False else None  # noqa — just documenting
     # Finish by folding remaining current player, then p2
     # p0 is current; to complete the round, we call next via actions.
     # Simpler: directly check p1 is recorded as folded via finish()
@@ -342,8 +341,7 @@ def test_fold_player_does_not_change_current_turn():
     assert e.current_player_id == "p0"
 
 def test_fold_player_triggers_round_completion_when_only_one_active():
-    # p0 raises, p2 folds via normal flow, p1 is the last active non-current player
-    # but we want to test fold_player completes the round
+    # After p0 raises and p2 is folded out-of-turn, p1's fold should end the round.
     e = BettingEngine(_players(100, 100, 100))
     e.raise_bet(10)     # p0 raises — current turn now p1
     e.fold_player("p2")  # fold p2 out of turn
