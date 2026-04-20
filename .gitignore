@@ -9,3 +9,6 @@ server/tests/__pycache__/
 
 # Claude
 .claude/
+
+# Superpowers brainstorming sessions
+.superpowers/
