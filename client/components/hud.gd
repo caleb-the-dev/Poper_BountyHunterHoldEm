@@ -2,7 +2,7 @@ extends CanvasLayer
 
 
 signal bet_action_requested(action_type: String, amount)  # amount may be null
-signal chat_message_sent(text: String)
+signal chat_message_sent(text: String)  # Emitted by a later task's send button; declared now for stable API
 
 const FONT_NORMAL := 20
 const FONT_HEADER := 24
@@ -243,6 +243,7 @@ func update(snap: Dictionary, my_player_id: String) -> void:
 	var all_in := bool(me.get("all_in", false)) if me else false
 	_bet_bar_visible = not (folded or all_in)
 	_bet_bar.visible = _bet_bar_visible
+	# Force-close the raise row if the local player became a spectator (folded/all-in).
 	_raise_row.visible = _raise_row.visible and _bet_bar_visible
 
 	# Check/Call label
@@ -264,6 +265,8 @@ func update(snap: Dictionary, my_player_id: String) -> void:
 		_raise_max = _raise_min
 	_raise_slider.min_value = _raise_min
 	_raise_slider.max_value = _raise_max
+	if _raise_slider.value > _raise_max:
+		_raise_slider.value = _raise_max
 	if _raise_slider.value < _raise_min:
 		_raise_slider.value = _raise_min
 
