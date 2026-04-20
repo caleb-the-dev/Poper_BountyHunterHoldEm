@@ -10,7 +10,7 @@ const CardFace := preload("res://components/card_face.gd")
 
 const COLOR_WIN_BG := Color(0.32, 0.24, 0.06, 0.65)
 const COLOR_WIN_BORDER := Color(0.95, 0.82, 0.30)
-const COLOR_FOLDED_FG := Color(0.60, 0.60, 0.60)
+const CARD_SIZE := Vector2(80, 112)
 
 
 func _init() -> void:
@@ -20,6 +20,7 @@ func _init() -> void:
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
+	dim.name = "_dim_bg"
 	dim.color = Color(0, 0, 0, 0.7)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
@@ -27,8 +28,9 @@ func _ready() -> void:
 
 func show_showdown(snap: Dictionary) -> void:
 	# Clear any previous content besides the dim layer
-	for c in get_children().slice(1):
-		c.queue_free()
+	for c in get_children():
+		if c.name != "_dim_bg":
+			c.queue_free()
 
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -136,7 +138,7 @@ func _build_row(player: Dictionary, sd: Dictionary) -> Control:
 	name_lbl.add_theme_font_size_override("font_size", FONT_ROW)
 	name_box.add_child(name_lbl)
 	var class_lbl := Label.new()
-	var cls_name := str(player.get("class_name", "") if player.get("class_name") != null else "")
+	var cls_name := str(player.get("class_name", ""))
 	class_lbl.text = "%s%s" % [cls_name, "  (folded)" if is_folded else ""]
 	class_lbl.add_theme_font_size_override("font_size", FONT_SMALL)
 	name_box.add_child(class_lbl)
@@ -155,7 +157,7 @@ func _build_row(player: Dictionary, sd: Dictionary) -> Control:
 		_append_face(cards_row, revealed.get("weapon", {}), "weapon")
 		_append_face(cards_row, revealed.get("item", {}), "item")
 		_append_face(cards_row, revealed.get("infusion", {}), "infusion")
-		var fourth = revealed.get("fourth_card", {})
+		var fourth: Dictionary = revealed.get("fourth_card", {})
 		var fourth_type := "infusion" if fourth.has("infusion_type") else "item"
 		_append_face(cards_row, fourth, fourth_type)
 
@@ -194,7 +196,7 @@ func _build_row(player: Dictionary, sd: Dictionary) -> Control:
 
 func _append_face(parent: Container, card: Dictionary, type_label: String) -> void:
 	var face := CardFace.new()
-	face.custom_minimum_size = Vector2(80, 112)
+	face.custom_minimum_size = CARD_SIZE
 	face.set_card(card, type_label)
 	parent.add_child(face)
 
@@ -202,7 +204,7 @@ func _append_face(parent: Container, card: Dictionary, type_label: String) -> vo
 func _append_folded_placeholder(parent: Container) -> void:
 	var rect := ColorRect.new()
 	rect.color = Color(0.18, 0.18, 0.18)
-	rect.custom_minimum_size = Vector2(80, 112)
+	rect.custom_minimum_size = CARD_SIZE
 	parent.add_child(rect)
 
 
@@ -219,6 +221,6 @@ func _format_math_helper(pid: String, sd: Dictionary) -> String:
 	if mods != 0:
 		parts.append("%+d" % mods)
 	var base_str := " + ".join(parts)
-	var mult = bd.get("infusion_mult", 1.0)
+	var mult: float = bd.get("infusion_mult", 1.0)
 	var total := int(bd.get("total", 0))
 	return "%s → %d × %s" % [base_str, total, str(mult)]
