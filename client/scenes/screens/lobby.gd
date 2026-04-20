@@ -1,6 +1,7 @@
 extends Control
 
 signal left_room
+signal game_starting
 
 var player_name: String = ""
 var room_code: String = ""
@@ -167,3 +168,5 @@ func _on_message(data: Dictionary) -> void:
 			_add_chat("[Server]", data["name"] + " left.")
 		"chat":
 			_add_chat(data.get("from", "?"), data.get("text", ""))
+		"game_state":
+			game_starting.emit()

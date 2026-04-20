@@ -1,6 +1,6 @@
 extends Control
 
-var _current_screen: Control = null
+var _current_screen: Node = null
 var _player_name: String = ""
 
 
@@ -28,15 +28,23 @@ func _show_lobby(room_code: String, players: Array) -> void:
 	screen.room_code = room_code
 	screen.initial_players = players
 	screen.left_room.connect(_on_left_room)
+	screen.game_starting.connect(_on_game_starting)
 	_swap(screen)
 
 
-func _swap(new_screen: Control) -> void:
+func _show_game() -> void:
+	var screen: Node3D = load("res://scenes/game/game.gd").new()
+	screen.left_game.connect(_on_left_game)
+	_swap(screen)
+
+
+func _swap(new_screen: Node) -> void:
 	if _current_screen != null:
 		_current_screen.queue_free()
 	_current_screen = new_screen
 	add_child(_current_screen)
-	_current_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	if new_screen is Control:
+		(new_screen as Control).set_anchors_preset(Control.PRESET_FULL_RECT)
 
 
 func _on_name_confirmed(player_name: String) -> void:
@@ -53,5 +61,15 @@ func _on_room_joined(room_code: String, players: Array) -> void:
 
 
 func _on_left_room() -> void:
+	WsClient.disconnect_from_server()
+	_show_main_menu()
+
+
+func _on_game_starting() -> void:
+	_show_game()
+
+
+func _on_left_game() -> void:
+	WsClient.send_message({"action": "leave_room"})
 	WsClient.disconnect_from_server()
 	_show_main_menu()
