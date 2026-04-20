@@ -500,3 +500,51 @@ def test_private_hand_for_player(card_set):
 def test_private_hand_unknown_player_returns_none(card_set):
     s = _make_session(card_set)
     assert s.private_hand("nobody") is None
+
+
+# --- Showdown payload: damage_breakdown + revealed_hands ---
+
+def test_showdown_includes_damage_breakdown(card_set):
+    s = _make_session(card_set)
+    _play_check_check_through_rounds(s, 5)
+    sd = s.showdown
+    assert "damage_breakdown" in sd
+    for pid in ("p0", "p1"):
+        bd = sd["damage_breakdown"][pid]
+        assert set(bd.keys()) == {"weapon", "class", "items", "mods_sum", "infusion_mult", "total"}
+        assert bd["total"] == sd["damages"][pid]
+
+def test_showdown_includes_revealed_hands_for_non_folded(card_set):
+    s = _make_session(card_set)
+    _play_check_check_through_rounds(s, 5)
+    sd = s.showdown
+    assert "revealed_hands" in sd
+    for pid in ("p0", "p1"):
+        rh = sd["revealed_hands"][pid]
+        assert set(rh.keys()) == {"weapon", "item", "infusion", "fourth_card", "class_card"}
+        for v in rh.values():
+            assert isinstance(v, dict)
+
+def test_showdown_revealed_hands_omits_folded_players(card_set):
+    # 3-player game: p0 folds round 1; p1 and p2 play through to showdown.
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "fold")   # p0 out; p1 and p2 continue
+    # Drive remaining two players through to showdown via checks each round
+    _play_check_check_through_remainder(s)
+    sd = s.showdown
+    assert sd is not None
+    assert "p0" not in sd["revealed_hands"]
+    assert "p1" in sd["revealed_hands"]
+    assert "p2" in sd["revealed_hands"]
+
+def test_walkover_showdown_has_empty_breakdown_and_hands(card_set):
+    # 3-player game: p1 and p2 fold → p0 walks over (no damage calc).
+    s = _make_session(card_set, n_players=3)
+    s.apply_bet_action("p0", "raise", 10)
+    s.apply_bet_action("p1", "fold")
+    s.apply_bet_action("p2", "fold")
+    sd = s.showdown
+    assert sd["damages"] == {}
+    assert sd["damage_breakdown"] == {}
+    assert sd["revealed_hands"] == {}
+    assert sd["winner_ids"] == ["p0"]

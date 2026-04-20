@@ -4,6 +4,7 @@ from typing import Optional
 from card_data import CardSet
 from game_state_machine import GameStateMachine
 from betting_engine import BettingEngine, BettingPlayer, _PlayerState
+from damage_calculator import calculate_damage_breakdown
 
 STARTING_CHIPS = 100
 
@@ -141,6 +142,8 @@ class GameSession:
                 "damages": {},
                 "winner_ids": [winner],
                 "pot_distribution": {winner: total},
+                "damage_breakdown": {},
+                "revealed_hands": {},
             }
             return
 
@@ -152,7 +155,56 @@ class GameSession:
             "damages": dict(result.damages),
             "winner_ids": list(result.winner_ids),
             "pot_distribution": distribution,
+            "damage_breakdown": self._build_damage_breakdown(non_folded),
+            "revealed_hands": self._build_revealed_hands(non_folded),
         }
+
+    def _build_showdown_hand(self, player) -> "Hand":
+        """Construct a damage_calculator.Hand for this player — mirrors GSM's
+        private _build_hand so we don't reach into GSM internals."""
+        from card_data import ItemCard
+        from damage_calculator import Hand
+
+        ph = player.hand
+        items = [ph.item]
+        infusions = [ph.infusion]
+        if isinstance(ph.fourth_card, ItemCard):
+            items.append(ph.fourth_card)
+        else:
+            infusions.append(ph.fourth_card)
+        return Hand(
+            weapon=ph.weapon,
+            items=items,
+            infusions=infusions,
+            class_card=player.class_card,
+            level=1,
+        )
+
+    def _build_damage_breakdown(self, non_folded_ids: list) -> dict:
+        """Per-player math parts from damage_calculator — UI reads this to show the math line."""
+        board = self.gsm.board_state  # public accessor — preferred over poking _board
+        out = {}
+        for pid in non_folded_ids:
+            player = next(p for p in self.gsm.players if p.player_id == pid)
+            hand = self._build_showdown_hand(player)
+            out[pid] = calculate_damage_breakdown(hand, board)
+        return out
+
+    def _build_revealed_hands(self, non_folded_ids: list) -> dict:
+        """Reveal each non-folded player's hand + class for the showdown overlay."""
+        out = {}
+        for pid in non_folded_ids:
+            priv = self.private_hand(pid)
+            if priv is None:
+                continue
+            out[pid] = {
+                "weapon":      priv["hand"]["weapon"],
+                "item":        priv["hand"]["item"],
+                "infusion":    priv["hand"]["infusion"],
+                "fourth_card": priv["hand"]["fourth_card"],
+                "class_card":  priv["class_card"],
+            }
+        return out
 
     def _distribute_pots(self, winner_ids: list, damages: dict) -> dict:
         """Distribute every pot among eligible winners. Returns {player_id: total_won}."""
