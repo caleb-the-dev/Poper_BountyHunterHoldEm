@@ -10,6 +10,8 @@ static func run() -> int:
 	fails += _test_shows_name_and_stat()
 	fails += _test_class_label()
 	fails += _test_handles_missing_stat()
+	fails += _test_weapon_multi_damage_types()
+	fails += _test_class_multi_formulas()
 	return fails
 
 
@@ -45,5 +47,29 @@ static func _test_handles_missing_stat() -> int:
 	var fails := 0
 	if not TestHelpers.assert_eq(face.get_name_text(), "Mystery", "name only"): fails += 1
 	if not TestHelpers.assert_eq(face.get_stat_text(), "", "stat empty when absent"): fails += 1
+	face.free()
+	return fails
+
+
+static func _test_weapon_multi_damage_types() -> int:
+	var face := _make_face()
+	face.set_card({
+		"name": "Sword and Board",
+		"damage_types": [[2, "slashing"], [1, "blunt"]],
+	}, "weapon")
+	var fails := 0
+	if not TestHelpers.assert_eq(face.get_stat_text(), "2 slashing, 1 blunt", "weapon stat joins pairs in amount-type order"): fails += 1
+	face.free()
+	return fails
+
+
+static func _test_class_multi_formulas() -> int:
+	var face := _make_face()
+	face.set_card({
+		"name": "Rogue",
+		"damage_formulas": [["2+LV", "constricting"], ["3+LV", "piercing"]],
+	}, "class")
+	var fails := 0
+	if not TestHelpers.assert_eq(face.get_stat_text(), "2+LV (constricting), 3+LV (piercing)", "class stat joins formulas in formula-(type) order"): fails += 1
 	face.free()
 	return fails
