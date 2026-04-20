@@ -1,10 +1,22 @@
 import math
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TypedDict
 
 from card_data import WeaponCard, ItemCard, InfusionCard, BountyCard, TerrainCard, BountyModCard, ClassCard
 
 _MULTIPLIER_FLOOR = 0.5
+
+
+# Functional TypedDict form — the wire key is literally "class" (Python keyword),
+# so we cannot use the class-based syntax here.
+DamageBreakdown = TypedDict("DamageBreakdown", {
+    "weapon": int,
+    "class": int,
+    "items": list[int],
+    "mods_sum": int,
+    "infusion_mult": float,
+    "total": int,
+})
 
 
 @dataclass
@@ -41,16 +53,17 @@ def _damage_sources(hand: Hand) -> list[tuple[str, int]]:
     return sources
 
 
-def calculate_damage(hand: Hand, board: BoardState) -> int:
-    sources = _damage_sources(hand)
-
-    # Step 1: base damage with bounty mod adjustments
-    base = sum(amount for _, amount in sources)
-    for mod in board.active_bounty_mods:
+def _compute_mods_sum(sources: list[tuple[str, int]], active_bounty_mods: list[BountyModCard]) -> int:
+    """Sum of mod modifiers * number of matching damage-type sources."""
+    total = 0
+    for mod in active_bounty_mods:
         matching = sum(1 for dtype, _ in sources if dtype.lower() == mod.affected_type.lower())
-        base += mod.modifier * matching
+        total += mod.modifier * matching
+    return total
 
-    # Step 2: infusion multiplier
+
+def _compute_infusion_multiplier(hand: Hand, board: BoardState) -> float:
+    """Final multiplier after vuln/resist evaluation, clamped at floor."""
     vuln_types: set[str] = {board.bounty.vulnerability}
     if board.terrain is not None:
         vuln_types.add(board.terrain.adds_vulnerability)
@@ -68,13 +81,19 @@ def calculate_damage(hand: Hand, board: BoardState) -> int:
         elif is_resist:
             multiplier -= 0.5
 
-    multiplier = max(multiplier, _MULTIPLIER_FLOOR)
+    return max(multiplier, _MULTIPLIER_FLOOR)
 
-    # Step 3: final
+
+def calculate_damage(hand: Hand, board: BoardState) -> int:
+    sources = _damage_sources(hand)
+
+    base = sum(amount for _, amount in sources) + _compute_mods_sum(sources, board.active_bounty_mods)
+    multiplier = _compute_infusion_multiplier(hand, board)
+
     return math.ceil(base * multiplier)
 
 
-def calculate_damage_breakdown(hand: Hand, board: BoardState) -> dict:
+def calculate_damage_breakdown(hand: Hand, board: BoardState) -> DamageBreakdown:
     """Return the math parts behind calculate_damage for UI display.
 
     Shape: {weapon, class, items[], mods_sum, infusion_mult, total}
@@ -89,29 +108,8 @@ def calculate_damage_breakdown(hand: Hand, board: BoardState) -> dict:
     class_sum = sum(_eval_formula(formula, hand.level) for formula, _ in hand.class_card.damage_formulas)
     items_list = [item.bonus_value for item in hand.items]
 
-    sources = _damage_sources(hand)
-    mods_sum = 0
-    for mod in board.active_bounty_mods:
-        matching = sum(1 for dtype, _ in sources if dtype.lower() == mod.affected_type.lower())
-        mods_sum += mod.modifier * matching
-
-    vuln_types: set[str] = {board.bounty.vulnerability}
-    if board.terrain is not None:
-        vuln_types.add(board.terrain.adds_vulnerability)
-    resist_types: set[str] = set() if board.resistance_dropped else {board.bounty.resistance}
-
-    multiplier = 1.0
-    for infusion in hand.infusions:
-        itype = infusion.infusion_type
-        is_vuln = itype in vuln_types
-        is_resist = itype in resist_types
-        if is_vuln and is_resist:
-            pass
-        elif is_vuln:
-            multiplier += 0.5
-        elif is_resist:
-            multiplier -= 0.5
-    multiplier = max(multiplier, _MULTIPLIER_FLOOR)
+    mods_sum = _compute_mods_sum(_damage_sources(hand), board.active_bounty_mods)
+    multiplier = _compute_infusion_multiplier(hand, board)
 
     base = weapon_sum + class_sum + sum(items_list) + mods_sum
     total = math.ceil(base * multiplier)

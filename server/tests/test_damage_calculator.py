@@ -1,6 +1,6 @@
 import pytest
 from card_data import WeaponCard, ItemCard, InfusionCard, BountyCard, TerrainCard, BountyModCard, ClassCard
-from damage_calculator import Hand, BoardState, calculate_damage
+from damage_calculator import Hand, BoardState, calculate_damage, calculate_damage_breakdown
 
 # --- Fixtures: cards constructed directly (no CSV loading needed) ---
 
@@ -214,8 +214,6 @@ def test_ceil_applied_once_to_final_result():
 
 # --- Breakdown helper ---
 
-from damage_calculator import calculate_damage_breakdown
-
 def test_breakdown_simple_weapon_plus_class():
     # Greatsword (3 slashing) + Soldier (2+LV=3 slashing) + no items/infusions
     hand = Hand(weapon=GREATSWORD, items=[], infusions=[], class_card=SOLDIER, level=1)
@@ -269,3 +267,28 @@ def test_breakdown_total_matches_calculate_damage():
         resistance_dropped=False,
     )
     assert calculate_damage_breakdown(hand, board)["total"] == calculate_damage(hand, board)
+
+
+def test_breakdown_infusion_mult_floored_at_half():
+    # 2 Ice infusions vs Beast (resist Ice): 1.0 - 0.5 - 0.5 = 0.0 → floored at 0.5
+    hand = Hand(weapon=GREATSWORD, items=[], infusions=[FROZEN, FROZEN], class_card=SOLDIER, level=1)
+    board = BoardState(bounty=BEAST)
+    bd = calculate_damage_breakdown(hand, board)
+    assert bd["infusion_mult"] == 0.5
+
+
+def test_breakdown_vuln_and_resist_cancel():
+    # Dragon (vuln Ice, resist Fire) + Tundra (adds Fire vuln): Fire in both sets → cancel branch, no change
+    hand = Hand(weapon=GREATSWORD, items=[], infusions=[BURNING], class_card=SOLDIER, level=1)
+    board = BoardState(bounty=DRAGON, terrain=TUNDRA)
+    bd = calculate_damage_breakdown(hand, board)
+    assert bd["infusion_mult"] == 1.0
+
+
+def test_breakdown_resistance_dropped_ignores_resist():
+    # Dragon (resist Fire) + Burning (Fire) + resistance_dropped=True
+    # Fire no longer in resist set and not in vuln set → neutral. Multiplier stays 1.0.
+    hand = Hand(weapon=GREATSWORD, items=[], infusions=[BURNING], class_card=SOLDIER, level=1)
+    board = BoardState(bounty=DRAGON, resistance_dropped=True)
+    bd = calculate_damage_breakdown(hand, board)
+    assert bd["infusion_mult"] == 1.0
