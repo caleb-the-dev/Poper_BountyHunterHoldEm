@@ -12,6 +12,7 @@ var _chat_log: VBoxContainer
 var _chat_scroll: ScrollContainer
 var _chat_input: LineEdit
 var _disconnected_cb: Callable
+var _game_started: bool = false
 
 
 func _ready() -> void:
@@ -169,4 +170,6 @@ func _on_message(data: Dictionary) -> void:
 		"chat":
 			_add_chat(data.get("from", "?"), data.get("text", ""))
 		"game_state":
-			game_starting.emit()
+			if not _game_started:
+				_game_started = true
+				game_starting.emit()
