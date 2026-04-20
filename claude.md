@@ -28,7 +28,8 @@
 - **Game State Machine built** — `server/game_state_machine.py`. Full hand lifecycle: LOBBY → CLASS_SELECTION → ROUND_1–5 → SHOWDOWN → HAND_END. Board reveals per round, 25% resistance drop at Round 3, showdown via DamageCalculator. `force_hand_end_walkover()` short-circuits to HAND_END without damage calc for sole-survivor cases. 46 tests passing. See `docs/map_directories/game_state_machine.md`.
 - **Betting Engine built** — `server/betting_engine.py`. `BettingEngine` manages one betting round: check/call/raise/fold/all-in, re-open after raise, side pot calculation, out-of-turn `fold_player` (advances turn when current). 49 tests passing. See `docs/map_directories/betting_engine.md`.
 - **Game Session Handler built** — `server/game_session.py` wires GSM + BettingEngine into the relay server as a per-room authoritative session. Host-triggered `start_game` action, `bet_action` (check/call/raise/fold/all_in), full state snapshots via `game_state` event (includes `room_code` + `host_id`), private `your_hand` per player, auto-fold on disconnect, mid-game join rejection. Single hand playable end-to-end. 59 session unit tests + 9 integration tests. Total server tests: 255. See `docs/map_directories/lobby_networking.md`.
-- **Next task:** Build the Godot game UI — class reveal screen, hand display, board reveal animation, bet action buttons, turn indicator, showdown screen. Consume the new `game_state` / `your_hand` events from the relay. First UI milestone: play one full hand visually from two Godot clients.
+- **Godot game UI built** — `client/scenes/game/game.gd` + `client/components/*` + `client/overlays/*`. Board reveal, seats, HUD, class reveal, showdown overlay. See `docs/map_directories/map.md` Client UI section.
+- **Next task:** Live two-client integration test — verify milestone. See Task 15 step 4.
 - **Build order after networking confirmed:** Card Data loader ✅ → Damage Calculator ✅ → Deck Manager ✅ → Game State Machine ✅ → Betting Engine ✅ → Game Session Handler ✅ → Godot game UI
 - **Cross-machine testing:** Second laptop available with Tailscale already set up — can use Tailscale IP instead of ngrok for LAN-free two-machine tests
 
@@ -70,7 +71,7 @@ The skill is the authoritative end-of-session workflow. Do not do wrap-up work a
 | Damage Calculator | ✅ Built | `server/damage_calculator.py`; 24 tests passing |
 | Lobby / Networking | ✅ Built | Python WebSocket relay + Godot 4 client; room code, chat, disconnect, start_game, bet_action |
 | Save System | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
-| UI | 🔲 Not built | Functional only for vertical slice |
+| UI | ✅ Built | Programmatic Godot UI; game screen + overlays; see map.md |
 
 ---
 

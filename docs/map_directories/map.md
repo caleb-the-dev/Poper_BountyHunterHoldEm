@@ -17,7 +17,25 @@
 | Lobby / Networking | [lobby_networking.md](lobby_networking.md) | ✅ Built | Python WebSocket relay (10s ping/pong) + Godot 4 client; room code, chat, disconnect, start_game, bet_action |
 | Game Session | [lobby_networking.md](lobby_networking.md) | ✅ Built | `server/game_session.py`; 59 tests passing; per-room GSM+Betting integration; snapshot exposes room_code + host_id |
 | Save System | [save_system.md](save_system.md) | 🔲 Not built | Local JSON; XP, level, wins, hands, coins earned |
-| UI | [ui.md](ui.md) | 🔲 Not built | Functional only for vertical slice |
+| UI | [ui.md](ui.md) | ✅ Built | Programmatic Godot UI; game screen + overlays; see Client UI section below |
+
+---
+
+## Client UI
+
+Programmatic Godot 4.6 UI for the vertical slice. All scenes are assembled in code; `.tscn` is a thin root. Headless Godot test harness covers non-rendering logic.
+
+- `client/scenes/game/game.gd` — top-level game screen; subscribes to `game_state` / `your_hand` and orchestrates board / seats / hud / overlays
+- `client/scenes/game/game.tscn` — root Node3D scene
+- `client/components/board_3d.gd` — 5-slot board (bounty / bounty_mods / terrain) with reveal animations
+- `client/components/seats_3d.gd` — per-player seat placement ring around the board
+- `client/components/card_3d.gd` — MeshInstance3D + SubViewport wrapper that renders a `card_face` into a 3D quad
+- `client/components/card_face.gd` — uniform Control-based card front (name, stats, art region)
+- `client/components/nameplate_3d.gd` — worldspace Label3D nameplate above each seat
+- `client/components/hud.gd` — CanvasLayer HUD with bet buttons, pot/turn indicator, chat drawer
+- `client/overlays/class_reveal.gd` — modal overlay shown at CLASS_SELECTION
+- `client/overlays/showdown.gd` — full-screen overlay rendering revealed hands + damage breakdown
+- `client/tests/run_all.gd` — headless Godot test entrypoint (`godot --headless --script res://tests/run_all.gd`)
 
 ---
 
@@ -135,3 +153,4 @@ These must be resolved before or during vertical slice development. Block on the
 | 2026-04-18 | Built `server/game_state_machine.py` — Game State Machine. Drives the full hand lifecycle (LOBBY → CLASS_SELECTION → ROUND_1–5 → SHOWDOWN → HAND_END). Board reveals per round, 25% resistance drop at Round 3, showdown via DamageCalculator. 43 tests passing. Total: 105 server tests. |
 | 2026-04-18 | Wired GSM + Betting Engine into the relay server as `server/game_session.py`. Added `start_game` + `bet_action` protocol. One-hand-at-a-time authoritative game session: random class assignment, 100 starting chips, full board reveals, showdown + pot distribution, auto-fold on disconnect, mid-game join rejection. 245 server tests passing. |
 | 2026-04-19 | Post-ship cleanup pass. Spec drift fix (your_hand payload shape). Added `room_code`+`host_id` to `snapshot()`. New `RoomManager.get_clients(code)` accessor (replaces `_rooms` reach-ins). New `GameStateMachine.force_hand_end_walkover()` (replaces private-state pokes in `GameSession._resolve_showdown`). Fixed `BettingEngine.fold_player` to advance turn when folding the current player — mid-raise disconnect bug. Tightened websocket ping/pong to 10/10s. New tests: mid-raise disconnect; pathological all-winners-ineligible side pot fallback. 255 server tests. |
+| 2026-04-20 | Godot UI milestone. Built programmatic Godot 4.6 game screen + overlays: `client/scenes/game/` (game.gd + game.tscn), `client/components/` (board_3d, seats_3d, card_3d, card_face, nameplate_3d, hud), `client/overlays/` (class_reveal, showdown). Added headless test harness at `client/tests/run_all.gd`. Server-side contract additions: `name_set.player_id`; `game_state.showdown.damage_breakdown` (per-player math parts); `game_state.showdown.revealed_hands` (non-folded cards). New `DamageCalculator.calculate_damage_breakdown(hand, board) -> dict`. Added Start Game button to lobby header. Next: live two-client integration test. |

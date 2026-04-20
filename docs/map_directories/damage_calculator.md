@@ -61,6 +61,17 @@ class BoardState:
     resistance_dropped: bool = False
 
 def calculate_damage(hand: Hand, board: BoardState) -> int: ...
+
+def calculate_damage_breakdown(hand: Hand, board: BoardState) -> dict: ...
+# Returns: {
+#   "weapon": int,         # sum of weapon damage type values
+#   "class": int,          # class formula evaluated at hand.level
+#   "items": list[int],    # bonus_value of each item in hand order
+#   "mods_sum": int,       # net contribution from active bounty mods (can be negative)
+#   "infusion_mult": float,# final multiplier after vuln/resist reconciliation
+#   "total": int,          # ceil((weapon + class + sum(items) + mods_sum) * infusion_mult)
+# }
+# Used by the showdown overlay to render the per-player math helper.
 ```
 
 ## Signals / Events
@@ -78,4 +89,5 @@ None — pure function module.
 | Date | Change |
 |---|---|
 | 2026-04-18 | Built `server/damage_calculator.py` and `server/tests/test_damage_calculator.py`. 24 tests passing. Covers base damage, infusion multiplier, terrain, resistance drop, bounty mods, infusion cancellation, stacking, ceil, and multiclass formulas. |
+| 2026-04-20 | Added `calculate_damage_breakdown(hand, board) -> dict` for the showdown overlay's per-player math helper. Returns weapon / class / items[] / mods_sum / infusion_mult / total. Same formula as `calculate_damage()` — matching total guaranteed by tests. |
 | 2026-04-17 | Bucket stub created. No implementation yet. |

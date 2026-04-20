@@ -133,3 +133,49 @@ See `docs/superpowers/specs/2026-04-18-game-session-handler-design.md` for the f
 | 2026-04-19 | Post-ship cleanup: `snapshot()` now exposes `room_code` + `host_id` (Godot UI will need both). Added `RoomManager.get_clients(code)` accessor, removing relay's `_rooms` reach-ins. Added `GameStateMachine.force_hand_end_walkover()`, replacing private-state pokes in `GameSession._resolve_showdown`. Fixed `BettingEngine.fold_player` to advance turn when folding the current player — otherwise mid-raise disconnects stalled the room. Tightened `ping_interval`/`ping_timeout` to 10/10 (was 20/20) for faster abrupt-disconnect detection. Added test coverage for mid-raise disconnect and the pathological "winner ineligible for side pot" fallback. 255 server tests. |
 | 2026-04-18 | Wired GSM + BettingEngine into the relay server via new `server/game_session.py`. Added `start_game` and `bet_action` actions, `game_state` + `your_hand` events. Host-only game start; random class assignment; 100 starting chips; auto-fold on disconnect; mid-game joins rejected. Full-hand end-to-end playable via the protocol. 245 server tests. |
 | 2026-04-17 | Bucket stub created. No implementation yet. Engine TBD. |
+
+---
+
+## 2026-04-20 — Godot UI Milestone Protocol Additions
+
+Contract additions made alongside the Godot game UI (programmatic 3D board + overlays). The relay server now includes the following fields in existing events so the client can render class reveal, per-seat card placement, and the showdown breakdown overlay.
+
+### `name_set` event
+- Now includes `player_id` (string) — the server-assigned client ID. Clients store this to match their own row inside later `game_state.players` / `showdown.revealed_hands` arrays. The Godot `WsClient` autoload caches it as `my_player_id` on receipt.
+
+### `game_state.showdown.damage_breakdown`
+Per-player map of damage math parts, keyed by `player_id`. Used by the showdown overlay to render the per-player math helper. Shape:
+
+```
+{
+  "<player_id>": {
+    "weapon": int,
+    "class": int,
+    "items": [int, ...],
+    "mods_sum": int,
+    "infusion_mult": float,
+    "total": int
+  },
+  ...
+}
+```
+
+`mods_sum` is the net bounty-mod contribution (can be negative). `infusion_mult` is the final multiplier after vulnerability / resistance reconciliation. `total` matches what `calculate_damage()` returns for the same hand + board.
+
+### `game_state.showdown.revealed_hands`
+Per-player map of revealed cards for **non-folded players only** (folded players stay hidden). Keyed by `player_id`. Shape:
+
+```
+{
+  "<player_id>": {
+    "class_card": {...},
+    "weapon": {...},
+    "item": {...},
+    "infusion": {...},
+    "fourth_card": {...}
+  },
+  ...
+}
+```
+
+Card payloads use the same serialized-card shape already used by `your_hand` (name + stats + type fields — see `card_data.py` dataclasses).

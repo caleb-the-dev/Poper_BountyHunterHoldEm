@@ -57,6 +57,13 @@ func _build_ui() -> void:
 	leave_btn.pressed.connect(_on_leave_pressed)
 	header.add_child(leave_btn)
 
+	var start_btn := Button.new()
+	start_btn.text = "Start Game"
+	start_btn.custom_minimum_size = Vector2(140, 48)
+	start_btn.add_theme_font_size_override("font_size", FONT_NORMAL)
+	start_btn.pressed.connect(func(): WsClient.send_message({"action": "start_game"}))
+	header.add_child(start_btn)
+
 	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", 16)
