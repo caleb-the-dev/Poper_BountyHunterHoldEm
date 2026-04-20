@@ -15,18 +15,17 @@ func _init() -> void:
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
+	dim.name = "_dim_bg"
 	dim.color = Color(0, 0, 0, 0.6)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
 
 func show_reveal(priv: Dictionary) -> void:
+	# Clear any previous content besides the dim layer
 	for c in get_children():
 		if c.name != "_dim_bg":
-			pass
-	# Clear any previous content besides the dim layer
-	for c in get_children().slice(1):
-		c.queue_free()
+			c.queue_free()
 
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -58,7 +57,7 @@ func show_reveal(priv: Dictionary) -> void:
 	_append_card(row, hand.get("weapon", {}), "weapon")
 	_append_card(row, hand.get("item", {}), "item")
 	_append_card(row, hand.get("infusion", {}), "infusion")
-	var fourth = hand.get("fourth_card", {})
+	var fourth: Dictionary = hand.get("fourth_card", {})
 	var fourth_type := "infusion" if fourth.has("infusion_type") else "item"
 	_append_card(row, fourth, fourth_type)
 
@@ -75,7 +74,7 @@ func show_reveal(priv: Dictionary) -> void:
 
 func _append_card(parent: Container, card: Dictionary, type_label: String) -> void:
 	var face := CardFace.new()
-	# Display size is half the render size; face renders at 256×358 but we fit 128×179 in the overlay
+	# Half render size — reveal shows all 5 cards side-by-side, space is tight.
 	face.custom_minimum_size = Vector2(128, 179)
 	face.set_card(card, type_label)
 	parent.add_child(face)
