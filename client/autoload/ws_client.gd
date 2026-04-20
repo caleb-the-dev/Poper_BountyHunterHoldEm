@@ -50,6 +50,7 @@ func _process(_delta: float) -> void:
 		WebSocketPeer.STATE_CLOSED:
 			if _is_connected:
 				_is_connected = false
+				my_player_id = ""
 				disconnected.emit()
 			_socket = null
 
