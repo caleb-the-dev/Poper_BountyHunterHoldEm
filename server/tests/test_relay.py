@@ -23,6 +23,17 @@ async def test_set_name():
         assert resp["name"] == "Alice"
 
 
+async def test_set_name_includes_player_id():
+    async with connect(URL) as ws:
+        await ws.send(json.dumps({"action": "set_name", "name": "Alice"}))
+        resp = json.loads(await ws.recv())
+        assert resp["event"] == "name_set"
+        assert resp["name"] == "Alice"
+        assert "player_id" in resp
+        assert isinstance(resp["player_id"], str)
+        assert len(resp["player_id"]) > 0
+
+
 async def test_create_room_returns_4_digit_code():
     ws = await make_named_client("Alice")
     try:

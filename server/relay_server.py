@@ -61,7 +61,7 @@ async def handler(ws) -> None:
 
             if action == "set_name":
                 ws.name = str(msg.get("name", "")).strip()[:32] or "Anonymous"
-                await _send(ws, "name_set", name=ws.name)
+                await _send(ws, "name_set", name=ws.name, player_id=_manager.get_player_id(ws))
                 print(f"[connect] {ws.name}")
 
             elif action == "create_room":
