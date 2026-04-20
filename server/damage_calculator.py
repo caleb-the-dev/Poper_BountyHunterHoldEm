@@ -72,3 +72,55 @@ def calculate_damage(hand: Hand, board: BoardState) -> int:
 
     # Step 3: final
     return math.ceil(base * multiplier)
+
+
+def calculate_damage_breakdown(hand: Hand, board: BoardState) -> dict:
+    """Return the math parts behind calculate_damage for UI display.
+
+    Shape: {weapon, class, items[], mods_sum, infusion_mult, total}
+    - weapon: sum of weapon damage amounts
+    - class: sum of class formula amounts (multi-class sums)
+    - items: list of item bonus_values in hand order
+    - mods_sum: net bounty-mod adjustment applied to base damage
+    - infusion_mult: final multiplier (floored at 0.5)
+    - total: ceil(base * infusion_mult) — matches calculate_damage
+    """
+    weapon_sum = sum(amount for amount, _ in hand.weapon.damage_types)
+    class_sum = sum(_eval_formula(formula, hand.level) for formula, _ in hand.class_card.damage_formulas)
+    items_list = [item.bonus_value for item in hand.items]
+
+    sources = _damage_sources(hand)
+    mods_sum = 0
+    for mod in board.active_bounty_mods:
+        matching = sum(1 for dtype, _ in sources if dtype.lower() == mod.affected_type.lower())
+        mods_sum += mod.modifier * matching
+
+    vuln_types: set[str] = {board.bounty.vulnerability}
+    if board.terrain is not None:
+        vuln_types.add(board.terrain.adds_vulnerability)
+    resist_types: set[str] = set() if board.resistance_dropped else {board.bounty.resistance}
+
+    multiplier = 1.0
+    for infusion in hand.infusions:
+        itype = infusion.infusion_type
+        is_vuln = itype in vuln_types
+        is_resist = itype in resist_types
+        if is_vuln and is_resist:
+            pass
+        elif is_vuln:
+            multiplier += 0.5
+        elif is_resist:
+            multiplier -= 0.5
+    multiplier = max(multiplier, _MULTIPLIER_FLOOR)
+
+    base = weapon_sum + class_sum + sum(items_list) + mods_sum
+    total = math.ceil(base * multiplier)
+
+    return {
+        "weapon": weapon_sum,
+        "class": class_sum,
+        "items": items_list,
+        "mods_sum": mods_sum,
+        "infusion_mult": multiplier,
+        "total": total,
+    }

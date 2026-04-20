@@ -210,3 +210,62 @@ def test_ceil_applied_once_to_final_result():
     hand = Hand(weapon=WAND, items=[], infusions=[THUNDEROUS], class_card=MAGE, level=1)
     board = BoardState(bounty=BEAST)
     assert calculate_damage(hand, board) == 14
+
+
+# --- Breakdown helper ---
+
+from damage_calculator import calculate_damage_breakdown
+
+def test_breakdown_simple_weapon_plus_class():
+    # Greatsword (3 slashing) + Soldier (2+LV=3 slashing) + no items/infusions
+    hand = Hand(weapon=GREATSWORD, items=[], infusions=[], class_card=SOLDIER, level=1)
+    board = BoardState(bounty=BEAST)
+    bd = calculate_damage_breakdown(hand, board)
+    assert bd["weapon"] == 3
+    assert bd["class"] == 3
+    assert bd["items"] == []
+    assert bd["mods_sum"] == 0
+    assert bd["infusion_mult"] == 1.0
+    assert bd["total"] == 6
+
+def test_breakdown_items_listed_individually():
+    # Greatsword (3) + Soldier (3) + Blades (1 slashing) + Hammer (2 blunt)
+    hand = Hand(weapon=GREATSWORD, items=[BLADES, HAMMER], infusions=[], class_card=SOLDIER, level=1)
+    board = BoardState(bounty=BEAST)
+    bd = calculate_damage_breakdown(hand, board)
+    assert bd["items"] == [1, 2]
+    assert bd["weapon"] == 3
+    assert bd["class"] == 3
+    assert bd["mods_sum"] == 0
+    assert bd["total"] == 9
+
+def test_breakdown_mods_sum_folds_positive_and_negative():
+    # Greatsword (3 slashing) + Soldier (3 slashing) + mods: +1 slashing, -1 slashing
+    # 2 slashing sources * (+1 + -1) = 0 net
+    hand = Hand(weapon=GREATSWORD, items=[], infusions=[], class_card=SOLDIER, level=1)
+    board = BoardState(
+        bounty=BEAST,
+        active_bounty_mods=[MOD_VULN_SLASHING, MOD_DEFLECT_SLASHING],
+    )
+    bd = calculate_damage_breakdown(hand, board)
+    assert bd["mods_sum"] == 0
+    assert bd["total"] == 6
+
+def test_breakdown_infusion_mult_reflected():
+    # Sonic infusion vs Beast (vuln Sonic): multiplier = 1.5
+    hand = Hand(weapon=GREATSWORD, items=[], infusions=[THUNDEROUS], class_card=SOLDIER, level=1)
+    board = BoardState(bounty=BEAST)
+    bd = calculate_damage_breakdown(hand, board)
+    assert bd["infusion_mult"] == 1.5
+    assert bd["total"] == 9  # ceil(6 * 1.5)
+
+def test_breakdown_total_matches_calculate_damage():
+    # Property: breakdown["total"] == calculate_damage(hand, board) for a varied hand
+    hand = Hand(weapon=SWORD_AND_BOARD, items=[BLADES], infusions=[THUNDEROUS], class_card=SPELLBLADE, level=2)
+    board = BoardState(
+        bounty=CONSTRUCT,
+        terrain=CAVE,
+        active_bounty_mods=[MOD_VULN_SLASHING],
+        resistance_dropped=False,
+    )
+    assert calculate_damage_breakdown(hand, board)["total"] == calculate_damage(hand, board)
