@@ -8,6 +8,7 @@ func _initialize() -> void:
 	# class globally referenceable; static run() returns the failure count.
 	fails += TestCardFace.run()
 	fails += TestBoard.run()
+	fails += TestSeats.run()
 	if fails == 0:
 		print("ALL TESTS PASSED")
 		quit(0)
